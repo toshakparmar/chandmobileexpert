@@ -63,3 +63,4 @@ When customers book a repair on the website:
 - Always sign out when leaving store counter terminals unattended.
 - The Admin Panel uses strict role-based access (`SUPER_ADMIN`). Test auth tokens are disabled in production.
 - Keep your Firebase Admin Service credentials secure in `.env.local`. Never commit `.env` files to git.
+

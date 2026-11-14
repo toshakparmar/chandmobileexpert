@@ -70,3 +70,4 @@ The shop owner can update their receiving UPI ID anytime without developer assis
 | Customer says they paid but no UTR in admin | Customer scanned QR but forgot to enter the 12-digit UTR on the screen | Ask customer for screenshot via WhatsApp and enter UTR in admin or mark order confirmed manually |
 | Customer entered wrong 12-digit UTR | Typo in customer submission | Click **Reject** with note *"UTR mismatch"*; customer can resubmit or send receipt via WhatsApp |
 | QR Code Expired | Customer waited longer than 15 minutes | Customer can click refresh in checkout to generate a fresh dynamic QR code |
+
