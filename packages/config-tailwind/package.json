@@ -1,0 +1,9 @@
+{
+  "name": "@chand/config-tailwind",
+  "version": "1.0.0",
+  "private": true,
+  "files": [
+    "theme.css"
+  ]
+}
+

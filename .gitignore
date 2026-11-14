@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 .pnpm-store/
+chandmobileexpert-*/
 
 # Next.js & NestJS build outputs
 .next/
@@ -41,3 +42,4 @@ coverage/
 # TypeScript cache
 *.tsbuildinfo
 next-env.d.ts
+

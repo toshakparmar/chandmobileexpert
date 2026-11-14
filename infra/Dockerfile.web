@@ -1,0 +1,26 @@
+# Dockerfile for Next.js Customer Web
+FROM node:22-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
+FROM base AS builder
+WORKDIR /app
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
+COPY packages/ packages/
+COPY apps/web/ apps/web/
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @chand/web run build
+
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+COPY --from=builder /app/apps/web/.next ./.next
+COPY --from=builder /app/apps/web/public ./public
+COPY --from=builder /app/apps/web/package.json ./package.json
+COPY --from=builder /app/apps/web/node_modules ./node_modules
+USER nextjs
+EXPOSE 3001
+CMD ["node_modules/.bin/next", "start", "-p", "3001"]
+

@@ -23,3 +23,4 @@
 * **Decision:** Generate standard `upi://pay` dynamic intent URLs and QR codes on the backend using the shop owner's configured VPA (`UPI_VPA`) and server-calculated order amount in paise. Customers submit their 12-digit UTR and optional screenshot for human verification by the admin before the order moves to `PROCESSING`.
 * **Alternatives Considered:** Gateway integration or simulated instant confirmation.
 * **Reason:** Truth in advertising. Without a merchant webhook API, automated bank reconciliation is impossible on personal VPAs. Clear messaging and UTR duplicate detection ensure fraud mitigation.
+

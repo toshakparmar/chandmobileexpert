@@ -171,3 +171,4 @@ The current codebase consists of three separate projects in the root directory:
 | **UI-02** | Frontend Arch| 🟡 Medium | Monolithic `checkout/page.tsx` (1,428 lines) | `web/app/checkout/page.tsx` | Decompose into 5 modular components | Pending Part C/G |
 | **UI-03** | Frontend Arch| 🟡 Medium | Redundant `app/api/*` BFF proxy routes | `web/app/api/*` | Remove and standardize on `api-client` | Pending Part B/G |
 | **ADM-01** | Admin Panel | 🟠 High | Dead code & unused template bloat in TailAdmin | `admin/src/app/(admin)/(others-pages)` | Purge unused demo pages and packages | Pending Part B/H |
+

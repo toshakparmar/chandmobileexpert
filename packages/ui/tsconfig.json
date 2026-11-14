@@ -1,0 +1,10 @@
+{
+  "extends": "@chand/config-typescript/library.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"]
+}
+

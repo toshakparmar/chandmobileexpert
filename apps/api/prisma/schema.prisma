@@ -1,0 +1,478 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// 1. USER & ROLE MANAGEMENT
+// -----------------------------------------------------------------------------
+
+enum Role {
+  USER
+  SUPER_ADMIN
+  TECHNICIAN
+}
+
+model User {
+  id              String  @id @default(uuid())
+  firebaseUid     String? @unique // For Firebase Auth integration
+  email           String? @unique
+  phone           String? @unique
+  password        String?
+  isEmailVerified Boolean @default(false)
+  isPhoneVerified Boolean @default(false)
+
+  // Profile Details
+  firstName      String?
+  lastName       String?
+  dateOfBirth    DateTime?
+  gender         String?
+  profilePicture String?
+
+  role     Role    @default(USER)
+  isActive Boolean @default(true)
+
+  // Relations
+  addresses     Address[]
+  orders        Order[]
+  repairQueries RepairQuery[]
+  cart          Cart?
+  wishlists     Wishlist[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Address {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name       String?
+  phone      String?
+  tag        String?     @default("HOME")
+  type       AddressType @default(SHIPPING)
+  street     String
+  landmark   String?
+  city       String
+  state      String
+  postalCode String
+  country    String      @default("IN")
+
+  isDefault Boolean @default(false)
+
+  shippingOrders Order[] @relation("ShippingAddressOrders")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum AddressType {
+  BILLING
+  SHIPPING
+}
+
+// -----------------------------------------------------------------------------
+// 2. BUSINESS PROFILE (Singleton)
+// -----------------------------------------------------------------------------
+
+model BusinessProfile {
+  id           Int    @id @default(1) // Always 1 for singleton
+  companyName  String
+  email        String
+  phone        String
+  whatsapp     String
+  address      String
+  openingHours String
+
+  facebookUrl  String?
+  instagramUrl String?
+  twitterUrl   String?
+  linkedinUrl  String?
+
+  // Commerce & UPI Configuration
+  upiVpa                String   @default("chandmobile@upi")
+  upiPayeeName          String   @default("Chand Mobile Expert")
+  upiQrExpiryMinutes    Int      @default(20)
+  codEnabled            Boolean  @default(true)
+  upiEnabled            Boolean  @default(true)
+  gstNumber             String?
+  invoicePrefix         String   @default("CME")
+  shippingFlatRate      Decimal  @default(0) @db.Decimal(10, 2)
+  freeShippingThreshold Decimal  @default(999) @db.Decimal(10, 2)
+  taxRate               Decimal  @default(18.0) @db.Decimal(5, 2)
+
+  updatedAt DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------------
+// 3. CATEGORIES & SUB-CATEGORIES
+// -----------------------------------------------------------------------------
+
+model Category {
+  id          String  @id @default(uuid())
+  name        String
+  slug        String  @unique
+  description String?
+  icon        String?
+  isActive    Boolean @default(true)
+
+  subCategories SubCategory[]
+  products      Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SubCategory {
+  id         String   @id @default(uuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  name        String
+  slug        String  @unique
+  description String?
+  isActive    Boolean @default(true)
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------------
+// 4. PRODUCTS & SHOP
+// -----------------------------------------------------------------------------
+
+model Product {
+  id         String   @id @default(uuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  subCategoryId String?
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id])
+
+  name          String
+  slug          String   @unique
+  description   String
+  price         Decimal  @db.Decimal(10, 2)
+  discountPrice Decimal? @db.Decimal(10, 2)
+  image         String?
+  sku           String?
+  condition     String?  @default("LIKE_NEW")
+  warrantyMonths Int     @default(12)
+
+  inStock    Boolean  @default(true)
+  stockCount Int      @default(0)
+  isActive   Boolean  @default(true)
+  isFeatured Boolean  @default(false)
+  deletedAt  DateTime?
+
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+  wishlists  Wishlist[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([subCategoryId])
+  @@index([brandId])
+  @@index([isActive])
+  @@index([price])
+}
+
+// -----------------------------------------------------------------------------
+// 5. BOOK REPAIRS & ENQUIRIES
+// -----------------------------------------------------------------------------
+
+enum RepairStatus {
+  PENDING
+  REVIEWING
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model RepairQuery {
+  id     String  @id @default(uuid())
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  referenceNumber String?       @unique
+  customerName    String
+  customerPhone   String
+
+  deviceModel     String
+  issueDesc       String
+  status          RepairStatus  @default(PENDING)
+  adminNotes      String?
+  technicianNotes String?
+  assignedToId    String?
+  estimatedPrice  Decimal?      @db.Decimal(10, 2)
+  finalPrice      Decimal?      @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model GeneralEnquiry {
+  id      String @id @default(uuid())
+  name    String
+  email   String
+  phone   String
+  subject String
+  message String
+
+  isResolved Boolean @default(false)
+  adminNotes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------------
+// 6. SERVICES, DEVICES & BRANDS (The Repair Matrix)
+// -----------------------------------------------------------------------------
+
+model Brand {
+  id       String  @id @default(uuid())
+  name     String  @unique // e.g., Apple, Samsung
+  logo     String?
+  isActive Boolean @default(true)
+
+  devices  Device[]
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Device {
+  id      String @id @default(uuid())
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  name     String // e.g., iPhone 15 Pro
+  image    String?
+  isActive Boolean @default(true)
+
+  services DeviceServicePricing[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Service {
+  id          String  @id @default(uuid())
+  name        String  @unique // e.g., Screen Replacement, Battery
+  icon        String?
+  description String?
+  isActive    Boolean @default(true)
+
+  devices DeviceServicePricing[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Pivot table linking Device and Service with specific pricing and conditions
+model DeviceServicePricing {
+  id       String @id @default(uuid())
+  deviceId String
+  device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  price                Decimal @db.Decimal(10, 2)
+  acceptableConditions String? // e.g., "Must power on, no water damage"
+  isActive             Boolean @default(true)
+
+  @@unique([deviceId, serviceId])
+}
+
+// -----------------------------------------------------------------------------
+// 7. TEAM, TESTIMONIALS & FAQ'S
+// -----------------------------------------------------------------------------
+
+model TeamMember {
+  id       String  @id @default(uuid())
+  name     String
+  role     String
+  image    String?
+  bio      String?
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Testimonial {
+  id           String  @id @default(uuid())
+  customerName String
+  rating       Int     @default(5)
+  review       String
+  image        String?
+  isActive     Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FAQ {
+  id       String  @id @default(uuid())
+  question String
+  answer   String
+  category String? // e.g., "Repairs", "Shipping"
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------------
+// 8. ORDERS & CHECKOUT (Accessories)
+// -----------------------------------------------------------------------------
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  AWAITING_PAYMENT
+  AWAITING_VERIFICATION
+  PAID
+  REJECTED
+  EXPIRED
+  REFUNDED
+}
+
+model Order {
+  id     String @id @default(uuid())
+  orderNumber String? @unique
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(AWAITING_PAYMENT)
+  totalAmount   Decimal       @db.Decimal(10, 2)
+  paymentMethod String?       @default("COD")
+
+  shippingAddressId String?
+  shippingAddress   Address? @relation("ShippingAddressOrders", fields: [shippingAddressId], references: [id])
+  billingAddressId  String?
+
+  items   OrderItem[]
+  payment Payment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  orderId         String        @unique
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method          String        @default("UPI")
+  status          PaymentStatus @default(AWAITING_PAYMENT)
+  amount          Decimal       @db.Decimal(10, 2)
+  upiVpa          String?
+  upiReference    String?       @unique
+  utr             String?       @unique
+  screenshotUrl   String?
+  rejectionReason String?
+  verifiedById    String?
+  submittedAt     DateTime?
+  verifiedAt      DateTime?
+  expiresAt       DateTime?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([status])
+  @@index([utr])
+  @@index([expiresAt])
+}
+
+model OrderItem {
+  id      String @id @default(uuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity Int
+  price    Decimal @db.Decimal(10, 2)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// -----------------------------------------------------------------------------
+// 9. CART & WISHLIST
+// -----------------------------------------------------------------------------
+
+model Cart {
+  id     String  @id @default(uuid())
+  userId String? @unique // Optional for guest carts, unique for logged-in user
+  user   User?   @relation(fields: [userId], references: [id])
+
+  items CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CartItem {
+  id     String @id @default(uuid())
+  cartId String
+  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+}
+
+model Wishlist {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
