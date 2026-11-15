@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@chand/ui", "@chand/types", "@chand/api-client"],
   images: {
     remotePatterns: [
       {
