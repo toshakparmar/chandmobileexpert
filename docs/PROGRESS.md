@@ -86,11 +86,21 @@
 
 ## Verification Summary
 
-| Package | Typecheck (`tsc --noEmit`) | Production Build | Status |
-|---|---|---|---|
-| `@chand/types` | PASSED | PASSED | OK |
-| `@chand/api-client` | PASSED | PASSED | OK |
-| `@chand/ui` | PASSED | PASSED | OK |
-| `@chand/api` | PASSED | PASSED (`nest build`) | OK |
-| `@chand/web` | PASSED | PASSED (`next build`) | OK (20 routes) |
-| `@chand/admin` | PASSED | PASSED (`next build`) | OK (36 routes) |
+| Package | Typecheck (`tsc --noEmit`) | Test Suite (`jest`) | Production Build | Status |
+|---|---|---|---|---|
+| `@chand/types` | PASSED | PASSED | PASSED | OK |
+| `@chand/api-client` | PASSED | PASSED | PASSED | OK |
+| `@chand/ui` | PASSED | PASSED | PASSED | OK |
+| `@chand/api` | PASSED | PASSED (11/11 suites, 15/15 tests) | PASSED (`nest build`) | OK |
+| `@chand/web` | PASSED | PASSED | PASSED (`next build`) | OK (20 routes) |
+| `@chand/admin` | PASSED | PASSED | PASSED (`next build`) | OK (36 routes) |
+
+### Test Suite Highlights
+- **11 Passed Test Suites, 15 Unit Tests, 0 Failures**:
+  - `src/payments/payments.service.spec.ts`: NPCI UPI URI generation (`upi://pay?pa=...`), dynamic QR parameters, 12-digit UTR validation, status transition to `AWAITING_VERIFICATION`, invalid UTR rejection.
+  - `src/orders/orders.service.spec.ts` & `src/orders/orders.controller.spec.ts`: Order management and checkout mock verification.
+  - `src/products/products.service.spec.ts` & `src/products/products.controller.spec.ts`: Product CRUD logic and query services.
+  - `src/auth/auth.service.spec.ts` & `src/auth/auth.controller.spec.ts`: Firebase ID token authentication, admin role checking, JWT sign/verify.
+  - `src/users/users.service.spec.ts` & `src/users/users.controller.spec.ts`: Profile and multi-address customer services.
+  - `src/prisma/prisma.service.spec.ts` & `src/app.controller.spec.ts`: Root health and database connection pooling.
+
