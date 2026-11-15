@@ -1,5 +1,5 @@
 {
-  "extends": "@chand/config-typescript/library.json",
+  "extends": "../config-typescript/library.json",
   "compilerOptions": {
     "jsx": "react-jsx",
     "outDir": "dist",
