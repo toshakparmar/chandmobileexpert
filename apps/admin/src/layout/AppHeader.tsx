@@ -83,7 +83,7 @@ const AppHeader: React.FC = () => {
             {/* Cross Icon */}
           </button>
 
-          <Link href="/" className="lg:hidden">
+          <Link href="/" className="lg:hidden" suppressHydrationWarning>
             <Image
               width={154}
               height={32}
@@ -91,7 +91,9 @@ const AppHeader: React.FC = () => {
               src="/images/logo/logo.png"
               alt="Logo"
               priority
+              loading="eager"
               style={{ width: "auto", height: "auto" }}
+              suppressHydrationWarning
               unoptimized
             />
             <Image
@@ -101,7 +103,9 @@ const AppHeader: React.FC = () => {
               src="/images/logo/dark-logo.png"
               alt="Logo"
               priority
+              loading="eager"
               style={{ width: "auto", height: "auto" }}
+              suppressHydrationWarning
               unoptimized
             />
           </Link>

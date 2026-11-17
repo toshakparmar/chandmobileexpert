@@ -300,7 +300,7 @@ const AppSidebar: React.FC = () => {
         className={`py-8 flex  ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
           }`}
       >
-        <Link href="/">
+        <Link href="/" suppressHydrationWarning>
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <Image
@@ -310,7 +310,9 @@ const AppSidebar: React.FC = () => {
                 width={200}
                 height={60}
                 priority
+                loading="eager"
                 style={{ width: "auto", height: "auto" }}
+                suppressHydrationWarning
                 unoptimized
               />
               <Image
@@ -320,7 +322,9 @@ const AppSidebar: React.FC = () => {
                 width={200}
                 height={60}
                 priority
+                loading="eager"
                 style={{ width: "auto", height: "auto" }}
+                suppressHydrationWarning
                 unoptimized
               />
             </>
@@ -331,7 +335,9 @@ const AppSidebar: React.FC = () => {
               width={32}
               height={32}
               priority
+              loading="eager"
               style={{ width: "auto", height: "auto" }}
+              suppressHydrationWarning
               unoptimized
             />
           )}
