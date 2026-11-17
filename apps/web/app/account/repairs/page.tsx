@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { useAuthStore } from "@/store/authStore";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Wrench,
@@ -33,6 +34,7 @@ interface RepairRecord {
 }
 
 export default function RepairsPage() {
+  const { user } = useAuthStore();
   const [repairs, setRepairs] = useState<RepairRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
@@ -43,7 +45,8 @@ export default function RepairsPage() {
     const fetchRepairs = async () => {
       setIsLoading(true);
       try {
-        const res = await api.get("/book-repairs/my-repairs");
+        const phoneParam = user?.phone ? `?phone=${encodeURIComponent(user.phone)}` : "";
+        const res = await api.get(`/book-repairs/my-repairs${phoneParam}`);
         if (res.data && Array.isArray(res.data)) {
           const mapped: RepairRecord[] = res.data.map((r: any) => ({
             id: r.id,

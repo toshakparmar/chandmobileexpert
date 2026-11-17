@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { businessConfig as fallbackConfig } from "@/config/business";
+import { api } from "@/lib/api";
 
 export interface BusinessProfileData {
   companyName: string;
@@ -65,24 +66,31 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
 
     async function loadBusinessProfile() {
       try {
-        const res = await fetch("/api/business-profile");
-        if (res.ok) {
-          const data = await res.json();
-          if (data && isMounted) {
-            setProfile((prev) => ({
-              ...prev,
-              companyName: data.companyName || prev.companyName,
-              phone: data.phone || prev.phone,
-              whatsapp: data.whatsapp || prev.whatsapp,
-              email: data.email || prev.email,
-              address: data.address || prev.address,
-              openingHours: data.openingHours || prev.openingHours,
-              instagramUrl: data.instagramUrl || prev.instagramUrl,
-              facebookUrl: data.facebookUrl || prev.facebookUrl,
-              twitterUrl: data.twitterUrl || prev.twitterUrl,
-              linkedinUrl: data.linkedinUrl || prev.linkedinUrl,
-            }));
+        let data: any = null;
+        try {
+          const apiRes = await api.get("/business-profile");
+          data = apiRes.data;
+        } catch {
+          const res = await fetch("/api/business-profile");
+          if (res.ok) {
+            data = await res.json();
           }
+        }
+
+        if (data && isMounted) {
+          setProfile((prev) => ({
+            ...prev,
+            companyName: data.companyName || prev.companyName,
+            phone: data.phone || prev.phone,
+            whatsapp: data.whatsapp || prev.whatsapp,
+            email: data.email || prev.email,
+            address: data.address || prev.address,
+            openingHours: data.openingHours || prev.openingHours,
+            instagramUrl: data.instagramUrl || prev.instagramUrl,
+            facebookUrl: data.facebookUrl || prev.facebookUrl,
+            twitterUrl: data.twitterUrl || prev.twitterUrl,
+            linkedinUrl: data.linkedinUrl || prev.linkedinUrl,
+          }));
         }
       } catch (err) {
         console.warn("Could not load dynamic business profile, using fallback config:", err);

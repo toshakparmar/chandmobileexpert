@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, Req, Query, Headers, BadRequestException } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { AuthGuard } from '@nestjs/passport';
+import { OptionalJwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CheckoutDto } from './dto/checkout.dto';
 import { RolesGuard } from '../auth/guards/roles/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -20,9 +21,13 @@ export class OrdersController {
 
   // User: Get their own orders
   @Get('my-orders')
-  @UseGuards(AuthGuard('jwt'))
-  getUserOrders(@Req() req: any) {
-    return this.ordersService.getUserOrders(req.user?.id);
+  @UseGuards(OptionalJwtAuthGuard)
+  getUserOrders(
+    @Req() req: any,
+    @Query('email') email?: string,
+    @Query('phone') phone?: string,
+  ) {
+    return this.ordersService.getUserOrders(req.user?.id, email, phone);
   }
 
   // User: Checkout flow (creates order from cart & records in database)

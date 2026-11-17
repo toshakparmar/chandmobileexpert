@@ -8,10 +8,12 @@ import {
   Delete,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { BookRepairsService } from './book-repairs.service';
 import { CreateBookRepairDto } from './dto/create-book-repair.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { OptionalJwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '@prisma/client';
@@ -38,9 +40,9 @@ export class BookRepairsController {
 
   // User: Get their own queries
   @Get('my-repairs')
-  @UseGuards(AuthGuard('jwt'))
-  getUserQueries(@Req() req: any) {
-    return this.bookRepairsService.getUserQueries(req.user.id);
+  @UseGuards(OptionalJwtAuthGuard)
+  getUserQueries(@Req() req: any, @Query('phone') phone?: string) {
+    return this.bookRepairsService.getUserQueries(req.user?.id, phone);
   }
 
   @Get(':id')

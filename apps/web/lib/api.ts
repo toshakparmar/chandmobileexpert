@@ -25,8 +25,11 @@ api.interceptors.response.use(
       Cookies.remove('user_access_token');
       Cookies.remove('user_data');
       if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('auth-storage');
+        } catch {}
         const path = window.location.pathname;
-        if (path.startsWith('/account')) {
+        if (path.startsWith('/account') && !path.startsWith('/auth')) {
           window.location.href = `/auth/login?redirect=${encodeURIComponent(path)}`;
         }
       }

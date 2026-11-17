@@ -133,10 +133,6 @@ export default function OrdersPage() {
           } catch (e) {}
         }
 
-        if (!resolvedEmail && !resolvedPhone) {
-          resolvedEmail = "yousunour@gmail.com";
-        }
-
         const userParam = resolvedEmail
           ? `?email=${encodeURIComponent(resolvedEmail)}`
           : resolvedPhone

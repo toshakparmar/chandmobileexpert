@@ -81,10 +81,13 @@ function LoginForm() {
     }
   }, [searchParams]);
 
-  // Redirect if already authenticated and profile complete
+  // Redirect if already authenticated with active token and profile complete
   useEffect(() => {
-    if (isAuthenticated && isProfileComplete) {
+    const hasToken = !!Cookies.get("user_access_token");
+    if (isAuthenticated && isProfileComplete && hasToken) {
       router.push(redirectUrl);
+    } else if (!hasToken && isAuthenticated) {
+      useAuthStore.getState().logout();
     }
   }, [isAuthenticated, isProfileComplete, router, redirectUrl]);
 

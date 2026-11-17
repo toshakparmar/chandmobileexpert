@@ -51,9 +51,15 @@ export class BookRepairsService {
     return this.prisma.repairQuery.delete({ where: { id } });
   }
 
-  async getUserQueries(userId: string) {
+  async getUserQueries(userId?: string, phone?: string) {
+    if (!userId && !phone) return [];
     return this.prisma.repairQuery.findMany({
-      where: { userId },
+      where: {
+        OR: [
+          ...(userId ? [{ userId }] : []),
+          ...(phone ? [{ customerPhone: phone }] : []),
+        ],
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
