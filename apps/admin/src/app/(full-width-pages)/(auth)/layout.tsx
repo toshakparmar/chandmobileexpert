@@ -57,12 +57,14 @@ export default function AuthLayout({
                   src={logoImg}
                   alt="Chand Mobile Expert Logo"
                   fill
+                  priority
                   className="object-contain dark:hidden drop-shadow-sm"
                 />
                 <Image
                   src={darkLogoImg}
                   alt="Chand Mobile Expert Logo"
                   fill
+                  priority
                   className="object-contain hidden dark:block drop-shadow-md"
                 />
               </div>

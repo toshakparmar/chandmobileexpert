@@ -50,6 +50,7 @@ export default function UserMetaCard() {
                 src="/images/logo/logo.png"
                 alt="user"
                 className="object-contain"
+                style={{ width: "auto", height: "auto" }}
                 unoptimized={true}
               />
             </div>

@@ -309,6 +309,8 @@ const AppSidebar: React.FC = () => {
                 alt="Logo"
                 width={200}
                 height={60}
+                priority
+                style={{ width: "auto", height: "auto" }}
                 unoptimized
               />
               <Image
@@ -317,6 +319,8 @@ const AppSidebar: React.FC = () => {
                 alt="Logo"
                 width={200}
                 height={60}
+                priority
+                style={{ width: "auto", height: "auto" }}
                 unoptimized
               />
             </>
@@ -326,6 +330,8 @@ const AppSidebar: React.FC = () => {
               alt="Logo"
               width={32}
               height={32}
+              priority
+              style={{ width: "auto", height: "auto" }}
               unoptimized
             />
           )}

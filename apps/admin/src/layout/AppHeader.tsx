@@ -90,6 +90,8 @@ const AppHeader: React.FC = () => {
               className="dark:hidden"
               src="/images/logo/logo.png"
               alt="Logo"
+              priority
+              style={{ width: "auto", height: "auto" }}
               unoptimized
             />
             <Image
@@ -98,6 +100,8 @@ const AppHeader: React.FC = () => {
               className="hidden dark:block"
               src="/images/logo/dark-logo.png"
               alt="Logo"
+              priority
+              style={{ width: "auto", height: "auto" }}
               unoptimized
             />
           </Link>
