@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -13,6 +13,8 @@ import { ConfirmModal } from "../ui/modal/ConfirmModal";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
+import Pagination from "./Pagination";
+import ComponentLoader from "../common/ComponentLoader";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 
 interface Category {
@@ -26,6 +28,13 @@ export default function CategoryTable() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -80,8 +89,14 @@ export default function CategoryTable() {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setName("");
     setSelectedCategory(null);
+  };
+
+  const generateSlug = (text: string) => {
+    return text
+      .toLowerCase()
+      .replace(/[^\w ]+/g, "")
+      .replace(/ +/g, "-");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,10 +105,11 @@ export default function CategoryTable() {
 
     try {
       setIsSubmitting(true);
+      const slug = generateSlug(name);
       if (modalMode === "create") {
-        await api.post("/categories", { name });
+        await api.post("/categories", { name, slug });
       } else if (modalMode === "edit" && selectedCategory) {
-        await api.patch(`/categories/${selectedCategory.id}`, { name });
+        await api.patch(`/categories/${selectedCategory.id}`, { name, slug });
       }
       await fetchCategories();
       closeModal();
@@ -126,16 +142,30 @@ export default function CategoryTable() {
     }
   };
 
-  if (loading && categories.length === 0) return <div className="p-5">Loading categories...</div>;
+  const filteredCategories = useMemo(() => {
+    const safeCategories = Array.isArray(categories) ? categories : [];
+    if (!searchQuery.trim()) return safeCategories;
+    const q = searchQuery.toLowerCase();
+    return safeCategories.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q)
+    );
+  }, [categories, searchQuery]);
+
+  const totalPages = Math.ceil(filteredCategories.length / pageSize) || 1;
+  const paginatedCategories = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredCategories.slice(start, start + pageSize);
+  }, [filteredCategories, currentPage, pageSize]);
+
+  if (loading && categories.length === 0) {
+    return <ComponentLoader text="Loading categories catalog..." />;
+  }
 
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span>{error}</span>
-          </div>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300 flex items-center justify-between gap-3">
+          <span>{error}</span>
           <button
             onClick={fetchCategories}
             className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition"
@@ -145,56 +175,78 @@ export default function CategoryTable() {
         </div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative max-w-sm w-full">
+          <input
+            type="text"
+            placeholder="Search categories..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-xs shadow-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-800 dark:bg-white/[0.03] dark:text-white"
+          />
+        </div>
         <Button onClick={openCreateModal}>
           + Add Category
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03] shadow-sm">
         <div className="max-w-full overflow-x-auto">
-          <div className="min-w-[800px]">
+          <div className="min-w-[700px]">
             <Table>
-              <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+              <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-white/[0.02]">
                 <TableRow>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">Name</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">Slug</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">Created At</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-end text-theme-xs">Actions</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Category Name</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Slug</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Created At</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-end text-theme-xs">Actions</TableCell>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {categories.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell className="px-5 py-4 sm:px-6 text-start">
-                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                {paginatedCategories.map((category) => (
+                  <TableRow key={category.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition">
+                    <TableCell className="px-5 py-3.5 text-start">
+                      <span className="block font-semibold text-gray-900 text-theme-sm dark:text-white">
                         {category.name}
                       </span>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    <TableCell className="px-4 py-3.5 text-gray-500 text-start text-xs font-mono dark:text-gray-400">
                       {category.slug}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {new Date(category.createdAt).toLocaleDateString()}
+                    <TableCell className="px-4 py-3.5 text-gray-400 text-start text-xs">
+                      {new Date(category.createdAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-end text-theme-sm dark:text-gray-400">
+                    <TableCell className="px-4 py-3.5 text-gray-500 text-end text-theme-sm dark:text-gray-400">
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => openEditModal(category)}
-                          className="text-brand-500 hover:text-brand-600 font-medium"
-                         title="Edit"><PencilIcon className="w-5 h-5" /></button>
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-white/5 transition"
+                          title="Edit"
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleDeleteClick(category.id)}
-                          className="text-error-500 hover:text-error-600 font-medium"
-                         title="Delete"><TrashBinIcon className="w-5 h-5" /></button>
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-error-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition"
+                          title="Delete"
+                        >
+                          <TrashBinIcon className="w-4 h-4" />
+                        </button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
-                {categories.length === 0 && !loading && (
+                {paginatedCategories.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={4} className="px-5 py-4 text-center text-gray-500">
-                      No categories found.
+                    <TableCell colSpan={4} className="px-5 py-8 text-center text-gray-400 text-xs">
+                      {searchQuery ? "No matching categories found." : "No categories found."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -202,43 +254,61 @@ export default function CategoryTable() {
             </Table>
           </div>
         </div>
+
+        {/* Pagination */}
+        <div className="px-5 py-3">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredCategories.length}
+            itemsPerPage={pageSize}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={closeModal} className="max-w-[500px] p-6">
-        <h3 className="mb-5 text-lg font-bold text-gray-800 dark:text-white/90">
-          {modalMode === "create" ? "Add Category" : "Edit Category"}
+      {/* Create / Edit Modal */}
+      <Modal isOpen={isModalOpen} onClose={closeModal} className="max-w-[450px] p-6">
+        <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">
+          {modalMode === "create" ? "Add New Category" : "Edit Category"}
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="name">Category Name</Label>
+            <Label htmlFor="categoryName">Category Name *</Label>
             <Input
-              id="name"
+              id="categoryName"
               type="text"
+              placeholder="e.g. Refurbished Smartphones"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Screen Repair"
               required
             />
           </div>
-          <div className="flex justify-end gap-3 mt-6">
+          {name && (
+            <p className="text-xs text-gray-400">
+              Generated Slug: <span className="font-mono text-gray-600 dark:text-gray-300">{generateSlug(name)}</span>
+            </p>
+          )}
+
+          <div className="flex justify-end gap-2.5 pt-4 border-t border-gray-100 dark:border-white/[0.05]">
             <Button variant="outline" onClick={closeModal} type="button">
               Cancel
             </Button>
             <Button disabled={isSubmitting} type="submit">
-              {isSubmitting ? "Saving..." : modalMode === "create" ? "Create" : "Save Changes"}
+              {isSubmitting ? "Saving..." : modalMode === "create" ? "Create Category" : "Save Changes"}
             </Button>
           </div>
         </form>
       </Modal>
 
+      {/* Confirm Delete Modal */}
       <ConfirmModal
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
         onConfirm={confirmDelete}
         title="Delete Category"
-        message="Are you sure you want to delete this category? This action cannot be undone."
+        message="Are you sure you want to delete this category? This may affect linked sub-categories and products."
         confirmText="Delete"
-        isDestructive={true}
         isLoading={isDeleting}
       />
     </div>

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -12,7 +12,8 @@ import { Modal } from "../ui/modal";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
-import Select from "../form/Select";
+import Pagination from "./Pagination";
+import ComponentLoader from "../common/ComponentLoader";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 
 interface Device {
@@ -25,8 +26,16 @@ interface Device {
 
 export default function DeviceTable() {
   const [devices, setDevices] = useState<Device[]>([]);
-  const [brands, setBrands] = useState<{value: string, label: string}[]>([]);
+  const [brands, setBrands] = useState<{ value: string; label: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,14 +50,21 @@ export default function DeviceTable() {
   const fetchDevices = async () => {
     try {
       setLoading(true);
+      setError(null);
       const [devicesRes, brandsRes] = await Promise.all([
         api.get("/devices"),
         api.get("/brands")
       ]);
       setDevices(Array.isArray(devicesRes.data) ? devicesRes.data : []);
-      setBrands(Array.isArray(brandsRes.data) ? brandsRes.data.map((b: any) => ({ value: b.id.toString(), label: b.name })) : []);
-    } catch (error) {
-      console.error("Failed to fetch data", error);
+      setBrands(
+        Array.isArray(brandsRes.data)
+          ? brandsRes.data.map((b: any) => ({ value: b.id.toString(), label: b.name }))
+          : []
+      );
+    } catch (err: any) {
+      console.error("Failed to fetch devices", err);
+      setError(err?.response?.data?.message || err?.message || "Failed to fetch devices");
+      setDevices([]);
     } finally {
       setLoading(false);
     }
@@ -61,7 +77,7 @@ export default function DeviceTable() {
   const openCreateModal = () => {
     setModalMode("create");
     setName("");
-    setBrandId("");
+    setBrandId(brands.length > 0 ? brands[0].value : "");
     setSelectedDevice(null);
     setIsModalOpen(true);
   };
@@ -76,17 +92,12 @@ export default function DeviceTable() {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setName("");
-    setBrandId("");
     setSelectedDevice(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !brandId) {
-      alert("Name and Brand are required");
-      return;
-    }
+    if (!name.trim() || !brandId) return;
 
     try {
       setIsSubmitting(true);
@@ -97,9 +108,9 @@ export default function DeviceTable() {
       }
       await fetchDevices();
       closeModal();
-    } catch (error) {
-      console.error(`Failed to ${modalMode} device`, error);
-      alert(`Failed to ${modalMode} device`);
+    } catch (err: any) {
+      console.error(`Failed to ${modalMode} device`, err);
+      alert(err?.response?.data?.message || `Failed to ${modalMode} device`);
     } finally {
       setIsSubmitting(false);
     }
@@ -110,66 +121,118 @@ export default function DeviceTable() {
     try {
       await api.delete(`/devices/${id}`);
       await fetchDevices();
-    } catch (error) {
-      console.error("Failed to delete device", error);
-      alert("Failed to delete device");
+    } catch (err: any) {
+      console.error("Failed to delete device", err);
+      alert(err?.response?.data?.message || "Failed to delete device");
     }
   };
 
-  if (loading && devices.length === 0) return <div className="p-5">Loading devices...</div>;
+  const filteredDevices = useMemo(() => {
+    const safeDevices = Array.isArray(devices) ? devices : [];
+    if (!searchQuery.trim()) return safeDevices;
+    const q = searchQuery.toLowerCase();
+    return safeDevices.filter(
+      (d) =>
+        d.name.toLowerCase().includes(q) ||
+        (d.brand?.name && d.brand.name.toLowerCase().includes(q))
+    );
+  }, [devices, searchQuery]);
+
+  const totalPages = Math.ceil(filteredDevices.length / pageSize) || 1;
+  const paginatedDevices = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredDevices.slice(start, start + pageSize);
+  }, [filteredDevices, currentPage, pageSize]);
+
+  if (loading && devices.length === 0) {
+    return <ComponentLoader text="Loading supported devices..." />;
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300 flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={fetchDevices} className="font-semibold text-red-700 underline">
+            Retry
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative max-w-sm w-full">
+          <input
+            type="text"
+            placeholder="Search devices (iPhone 15, Galaxy S24, etc.)..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-xs shadow-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-800 dark:bg-white/[0.03] dark:text-white"
+          />
+        </div>
         <Button onClick={openCreateModal}>
           + Add Device
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03] shadow-sm">
         <div className="max-w-full overflow-x-auto">
-          <div className="min-w-[800px]">
+          <div className="min-w-[700px]">
             <Table>
-              <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+              <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-white/[0.02]">
                 <TableRow>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">Name</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">Brand</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">Created At</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-end text-theme-xs">Actions</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Device Model</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Brand</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Created At</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-end text-theme-xs">Actions</TableCell>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {Array.isArray(devices) && devices.map((device) => (
-                  <TableRow key={device.id}>
-                    <TableCell className="px-5 py-4 sm:px-6 text-start">
-                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                {paginatedDevices.map((device) => (
+                  <TableRow key={device.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition">
+                    <TableCell className="px-5 py-3.5 text-start">
+                      <span className="block font-semibold text-gray-900 text-theme-sm dark:text-white">
                         {device.name}
                       </span>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {device.brand?.name || `ID: ${device.brandId}`}
+                    <TableCell className="px-4 py-3.5 text-gray-600 text-start text-theme-sm dark:text-gray-300">
+                      <span className="inline-flex items-center rounded-lg bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                        {device.brand?.name || `Brand #${device.brandId}`}
+                      </span>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {new Date(device.createdAt).toLocaleDateString()}
+                    <TableCell className="px-4 py-3.5 text-gray-400 text-start text-xs">
+                      {new Date(device.createdAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-end text-theme-sm dark:text-gray-400">
+                    <TableCell className="px-4 py-3.5 text-gray-500 text-end text-theme-sm dark:text-gray-400">
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => openEditModal(device)}
-                          className="text-brand-500 hover:text-brand-600 font-medium"
-                         title="Edit"><PencilIcon className="w-5 h-5" /></button>
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-white/5 transition"
+                          title="Edit"
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleDelete(device.id)}
-                          className="text-error-500 hover:text-error-600 font-medium"
-                         title="Delete"><TrashBinIcon className="w-5 h-5" /></button>
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-error-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition"
+                          title="Delete"
+                        >
+                          <TrashBinIcon className="w-4 h-4" />
+                        </button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
-                {devices.length === 0 && !loading && (
+                {paginatedDevices.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={4} className="px-5 py-4 text-center text-gray-500">
-                      No devices found.
+                    <TableCell colSpan={4} className="px-5 py-8 text-center text-gray-400 text-xs">
+                      {searchQuery ? "No matching devices found." : "No devices found."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -177,48 +240,61 @@ export default function DeviceTable() {
             </Table>
           </div>
         </div>
+
+        {/* Pagination */}
+        <div className="px-5 py-3">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredDevices.length}
+            itemsPerPage={pageSize}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={closeModal} className="max-w-[500px] p-6">
-        <h3 className="mb-5 text-lg font-bold text-gray-800 dark:text-white/90">
-          {modalMode === "create" ? "Add Device" : "Edit Device"}
+      {/* Modal */}
+      <Modal isOpen={isModalOpen} onClose={closeModal} className="max-w-[450px] p-6">
+        <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">
+          {modalMode === "create" ? "Add Supported Device" : "Edit Device"}
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="name">Device Name</Label>
+            <Label htmlFor="deviceName">Device Model Name *</Label>
             <Input
-              id="name"
+              id="deviceName"
               type="text"
+              placeholder="e.g. iPhone 15 Pro Max, Galaxy S24 Ultra"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. iPhone 15 Pro"
               required
             />
           </div>
+
           <div>
-            <Label htmlFor="brandId">Brand</Label>
-            {/* The Select component doesn't update if defaultValue changes dynamically unless keyed, so we use a key or just pass standard select if it's simpler, wait `Select` handles internal state differently.
-                Wait! Select component has a bug where it doesn't sync with props if we change `defaultValue`.
-                I will use a standard HTML select to avoid issues with the custom Select component's internal state. */}
+            <Label htmlFor="deviceBrand">Brand *</Label>
             <select
-              id="brandId"
+              id="deviceBrand"
               value={brandId}
               onChange={(e) => setBrandId(e.target.value)}
               required
-              className="h-11 w-full appearance-none rounded-lg border border-gray-300 px-4 py-2.5 pr-11 text-sm shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+              className="h-11 w-full rounded-xl border border-gray-300 px-3.5 text-xs shadow-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             >
-              <option value="" disabled>Select a brand</option>
+              <option value="">Select Brand</option>
               {brands.map((b) => (
-                <option key={b.value} value={b.value}>{b.label}</option>
+                <option key={b.value} value={b.value}>
+                  {b.label}
+                </option>
               ))}
             </select>
           </div>
-          <div className="flex justify-end gap-3 mt-6">
+
+          <div className="flex justify-end gap-2.5 pt-4 border-t border-gray-100 dark:border-white/[0.05]">
             <Button variant="outline" onClick={closeModal} type="button">
               Cancel
             </Button>
             <Button disabled={isSubmitting} type="submit">
-              {isSubmitting ? "Saving..." : modalMode === "create" ? "Create" : "Save Changes"}
+              {isSubmitting ? "Saving..." : modalMode === "create" ? "Create Device" : "Save Changes"}
             </Button>
           </div>
         </form>

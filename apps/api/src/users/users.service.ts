@@ -11,6 +11,16 @@ export class UsersService {
     });
   }
 
+  async create(data: any) {
+    if (data.password) {
+      const bcrypt = require('bcrypt');
+      data.password = await bcrypt.hash(data.password, 10);
+    }
+    return this.prisma.user.create({
+      data,
+    });
+  }
+
   async findOne(id: string) {
     return this.prisma.user.findUnique({
       where: { id }
@@ -18,6 +28,10 @@ export class UsersService {
   }
 
   async update(id: string, data: any) {
+    if (data.password) {
+      const bcrypt = require('bcrypt');
+      data.password = await bcrypt.hash(data.password, 10);
+    }
     return this.prisma.user.update({
       where: { id },
       data

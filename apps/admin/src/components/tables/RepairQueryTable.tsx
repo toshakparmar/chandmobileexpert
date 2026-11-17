@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -14,14 +14,17 @@ import { ConfirmModal } from "../ui/modal/ConfirmModal";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
-import { TrashBinIcon } from "@/icons";
-import { PencilIcon } from "@/icons";
+import Pagination from "./Pagination";
+import ComponentLoader from "../common/ComponentLoader";
+import { TrashBinIcon, PencilIcon, EyeIcon } from "@/icons";
 
 interface RepairQuery {
   id: string;
+  referenceNumber?: string;
   userId: string | null;
   customerName: string;
   customerPhone: string;
+  deviceBrand?: string;
   deviceModel: string;
   issueDesc: string;
   status: string;
@@ -32,8 +35,19 @@ interface RepairQuery {
 export default function RepairQueryTable() {
   const [queries, setQueries] = useState<RepairQuery[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"edit" | "view">("edit");
   const [selectedQuery, setSelectedQuery] = useState<RepairQuery | null>(null);
   const [status, setStatus] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
@@ -47,10 +61,12 @@ export default function RepairQueryTable() {
   const fetchQueries = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await api.get("/book-repairs");
       setQueries(Array.isArray(response.data) ? response.data : []);
-    } catch (error) {
-      console.error("Failed to fetch repair queries", error);
+    } catch (err: any) {
+      console.error("Failed to fetch repair queries", err);
+      setError(err?.response?.data?.message || err?.message || "Failed to fetch repair queries");
       setQueries([]);
     } finally {
       setLoading(false);
@@ -65,6 +81,13 @@ export default function RepairQueryTable() {
     setSelectedQuery(query);
     setStatus(query.status);
     setAdminNotes(query.adminNotes || "");
+    setModalMode("edit");
+    setIsModalOpen(true);
+  };
+
+  const openViewModal = (query: RepairQuery) => {
+    setSelectedQuery(query);
+    setModalMode("view");
     setIsModalOpen(true);
   };
 
@@ -79,12 +102,15 @@ export default function RepairQueryTable() {
 
     try {
       setIsSubmitting(true);
-      await api.patch(`/book-repairs/${selectedQuery.id}`, { status, adminNotes });
+      await api.patch(`/book-repairs/${selectedQuery.id}`, {
+        status,
+        adminNotes: adminNotes.trim() || undefined,
+      });
       await fetchQueries();
       closeModal();
-    } catch (error) {
-      console.error("Failed to update repair query", error);
-      alert("Failed to update repair query");
+    } catch (err: any) {
+      console.error("Failed to update repair query", err);
+      alert(err?.response?.data?.message || "Failed to update repair query");
     } finally {
       setIsSubmitting(false);
     }
@@ -103,85 +129,189 @@ export default function RepairQueryTable() {
       await fetchQueries();
       setIsConfirmOpen(false);
       setDeleteId(null);
-    } catch (error) {
-      console.error("Failed to delete repair query", error);
-      alert("Failed to delete repair query");
+    } catch (err: any) {
+      console.error("Failed to delete repair query", err);
+      alert(err?.response?.data?.message || "Failed to delete repair query");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  if (loading && queries.length === 0) return <div className="p-5">Loading repair queries...</div>;
+  const filteredQueries = useMemo(() => {
+    const safeQueries = Array.isArray(queries) ? queries : [];
+    return safeQueries
+      .filter((q) => (statusFilter === "ALL" ? true : q.status === statusFilter))
+      .filter((q) => {
+        if (!searchQuery.trim()) return true;
+        const s = searchQuery.toLowerCase();
+        return (
+          q.customerName.toLowerCase().includes(s) ||
+          q.customerPhone.toLowerCase().includes(s) ||
+          q.deviceModel.toLowerCase().includes(s) ||
+          (q.deviceBrand && q.deviceBrand.toLowerCase().includes(s)) ||
+          (q.referenceNumber && q.referenceNumber.toLowerCase().includes(s)) ||
+          q.issueDesc.toLowerCase().includes(s)
+        );
+      });
+  }, [queries, searchQuery, statusFilter]);
+
+  const totalPages = Math.ceil(filteredQueries.length / pageSize) || 1;
+  const paginatedQueries = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredQueries.slice(start, start + pageSize);
+  }, [filteredQueries, currentPage, pageSize]);
+
+  const getStatusColor = (st: string) => {
+    switch (st) {
+      case "COMPLETED":
+        return "success";
+      case "CANCELLED":
+        return "error";
+      case "PENDING":
+        return "warning";
+      case "IN_PROGRESS":
+        return "info";
+      default:
+        return "light";
+    }
+  };
+
+  if (loading && queries.length === 0) {
+    return <ComponentLoader text="Loading repair requests..." />;
+  }
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300 flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={fetchQueries} className="font-semibold text-red-700 underline">
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Search and Status Filters */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative max-w-sm w-full">
+          <input
+            type="text"
+            placeholder="Search repairs by customer, phone, device, issue..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-xs shadow-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-800 dark:bg-white/[0.03] dark:text-white"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto">
+          {["ALL", "PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"].map((st) => (
+            <button
+              key={st}
+              type="button"
+              onClick={() => {
+                setStatusFilter(st);
+                setCurrentPage(1);
+              }}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition shrink-0 ${
+                statusFilter === st
+                  ? "bg-brand-500 text-white shadow-sm"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
+              }`}
+            >
+              {st}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Repair Queries Table */}
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03] shadow-sm">
         <div className="max-w-full overflow-x-auto">
-          <div className="min-w-[1000px]">
+          <div className="min-w-[950px]">
             <Table>
-              <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+              <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-white/[0.02]">
                 <TableRow>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">ID</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">Customer</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">Device</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">Issue</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">Status</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-end text-theme-xs">Actions</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Query / Ref</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Customer</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Device</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Issue Description</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Status</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Date</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-end text-theme-xs">Actions</TableCell>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {queries.map((query) => (
-                  <TableRow key={query.id}>
-                    <TableCell className="px-5 py-4 sm:px-6 text-start">
-                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                        {query.id.slice(0, 8)}...
+                {paginatedQueries.map((query) => (
+                  <TableRow key={query.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition">
+                    <TableCell className="px-5 py-3.5 text-start">
+                      <span className="block font-semibold text-gray-900 text-theme-sm dark:text-white" title={query.id}>
+                        {query.referenceNumber || `#${query.id.slice(0, 8)}`}
                       </span>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {query.customerName} ({query.customerPhone})
+                    <TableCell className="px-4 py-3.5 text-start text-theme-sm">
+                      <span className="block font-semibold text-gray-800 dark:text-white/90">
+                        {query.customerName}
+                      </span>
+                      <span className="block text-xs text-gray-400">
+                        {query.customerPhone}
+                      </span>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {query.deviceModel}
+                    <TableCell className="px-4 py-3.5 text-gray-700 text-start text-theme-sm dark:text-gray-300">
+                      <span className="inline-flex items-center rounded-lg bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                        {query.deviceBrand ? `${query.deviceBrand} ` : ""}{query.deviceModel}
+                      </span>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      <div className="truncate max-w-[200px]" title={query.issueDesc}>
+                    <TableCell className="px-4 py-3.5 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                      <div className="truncate max-w-[220px]" title={query.issueDesc}>
                         {query.issueDesc}
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      <Badge
-                        size="sm"
-                        color={
-                          query.status === "COMPLETED"
-                            ? "success"
-                            : query.status === "CANCELLED"
-                            ? "error"
-                            : query.status === "PENDING"
-                            ? "warning"
-                            : "info"
-                        }
-                      >
+                    <TableCell className="px-4 py-3.5 text-start text-theme-sm">
+                      <Badge size="sm" color={getStatusColor(query.status)}>
                         {query.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-end text-theme-sm dark:text-gray-400">
+                    <TableCell className="px-4 py-3.5 text-gray-400 text-start text-xs">
+                      {new Date(query.createdAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </TableCell>
+                    <TableCell className="px-4 py-3.5 text-gray-500 text-end text-theme-sm dark:text-gray-400">
                       <div className="flex justify-end gap-2">
                         <button
+                          onClick={() => openViewModal(query)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-white/5 transition"
+                          title="View Details"
+                        >
+                          <EyeIcon className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => openEditModal(query)}
-                          className="text-brand-500 hover:text-brand-600 font-medium"
-                         title="Update"><PencilIcon className="w-5 h-5" /></button>
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-white/5 transition"
+                          title="Diagnose & Update Status"
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleDeleteClick(query.id)}
-                          className="text-error-500 hover:text-error-600 font-medium"
-                         title="Delete"><TrashBinIcon className="w-5 h-5" /></button>
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-error-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition"
+                          title="Delete"
+                        >
+                          <TrashBinIcon className="w-4 h-4" />
+                        </button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
-                {queries.length === 0 && !loading && (
+                {paginatedQueries.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={6} className="px-5 py-4 text-center text-gray-500">
-                      No repair queries found.
+                    <TableCell colSpan={7} className="px-5 py-8 text-center text-gray-400 text-xs">
+                      {searchQuery ? "No matching repair queries found." : "No repair queries found."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -189,57 +319,117 @@ export default function RepairQueryTable() {
             </Table>
           </div>
         </div>
+
+        {/* Pagination */}
+        <div className="px-5 py-3">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredQueries.length}
+            itemsPerPage={pageSize}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       </div>
 
+      {/* Edit / View Modal */}
       <Modal isOpen={isModalOpen} onClose={closeModal} className="max-w-[500px] p-6">
-        <h3 className="mb-5 text-lg font-bold text-gray-800 dark:text-white/90">
-          Update Repair Query
-        </h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="status">Status</Label>
-            <select
-              id="status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="h-11 w-full appearance-none rounded-lg border border-gray-300 px-4 py-2.5 pr-11 text-sm shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-            >
-              <option value="PENDING">Pending</option>
-              <option value="REVIEWING">Reviewing</option>
-              <option value="APPROVED">Approved</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="adminNotes">Admin Notes</Label>
-            <textarea
-              id="adminNotes"
-              value={adminNotes}
-              onChange={(e) => setAdminNotes(e.target.value)}
-              rows={4}
-              className="w-full rounded-lg border border-gray-300 p-3 text-sm shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-              placeholder="Internal notes..."
-            />
-          </div>
-          <div className="flex justify-end gap-3 mt-6">
-            <Button variant="outline" onClick={closeModal} type="button">
-              Cancel
-            </Button>
-            <Button disabled={isSubmitting} type="submit">
-              {isSubmitting ? "Saving..." : "Update"}
-            </Button>
-          </div>
-        </form>
+        {modalMode === "edit" ? (
+          <>
+            <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">
+              Diagnose & Update Repair
+            </h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="status">Repair Status</Label>
+                <select
+                  id="status"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="h-11 w-full rounded-xl border border-gray-300 px-3.5 text-xs shadow-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                >
+                  <option value="PENDING">Pending (New Query Received)</option>
+                  <option value="IN_PROGRESS">In Progress (Under Diagnosis / Repair)</option>
+                  <option value="COMPLETED">Completed (Repaired & Ready for Pickup)</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </div>
+
+              <div>
+                <Label htmlFor="adminNotes">Technician / Admin Notes</Label>
+                <textarea
+                  id="adminNotes"
+                  rows={3}
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="e.g. Screen replaced with genuine OLED panel. Tested touch sensitivity & FaceID."
+                  className="w-full rounded-xl border border-gray-300 p-3 text-xs shadow-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-4 border-t border-gray-100 dark:border-white/[0.05]">
+                <Button variant="outline" onClick={closeModal} type="button">
+                  Cancel
+                </Button>
+                <Button disabled={isSubmitting} type="submit">
+                  {isSubmitting ? "Saving..." : "Save Diagnosis"}
+                </Button>
+              </div>
+            </form>
+          </>
+        ) : selectedQuery ? (
+          <>
+            <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">
+              Repair Request ({selectedQuery.referenceNumber || `#${selectedQuery.id.slice(0, 8)}`})
+            </h3>
+            <div className="space-y-3 text-xs text-gray-700 dark:text-gray-300">
+              <div className="flex justify-between border-b border-gray-100 dark:border-white/5 pb-2">
+                <span className="font-semibold text-gray-500">Customer</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{selectedQuery.customerName}</span>
+              </div>
+              <div className="flex justify-between border-b border-gray-100 dark:border-white/5 pb-2">
+                <span className="font-semibold text-gray-500">Phone</span>
+                <span className="font-medium text-gray-900 dark:text-white">{selectedQuery.customerPhone}</span>
+              </div>
+              <div className="flex justify-between border-b border-gray-100 dark:border-white/5 pb-2">
+                <span className="font-semibold text-gray-500">Device</span>
+                <span>{selectedQuery.deviceBrand ? `${selectedQuery.deviceBrand} ` : ""}{selectedQuery.deviceModel}</span>
+              </div>
+              <div className="flex justify-between border-b border-gray-100 dark:border-white/5 pb-2">
+                <span className="font-semibold text-gray-500">Status</span>
+                <Badge size="sm" color={getStatusColor(selectedQuery.status)}>{selectedQuery.status}</Badge>
+              </div>
+              <div className="pt-1">
+                <span className="font-semibold text-gray-500 block mb-1">Issue Description:</span>
+                <p className="bg-gray-50 dark:bg-white/[0.02] p-2.5 rounded-xl text-gray-800 dark:text-gray-200">
+                  {selectedQuery.issueDesc}
+                </p>
+              </div>
+              {selectedQuery.adminNotes && (
+                <div className="pt-1">
+                  <span className="font-semibold text-gray-500 block mb-1">Technician Notes:</span>
+                  <p className="bg-emerald-50 dark:bg-emerald-950/20 p-2.5 rounded-xl text-emerald-800 dark:text-emerald-300">
+                    {selectedQuery.adminNotes}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2.5 mt-6">
+              <Button onClick={closeModal} type="button">
+                Close
+              </Button>
+            </div>
+          </>
+        ) : null}
       </Modal>
 
+      {/* Confirm Delete Modal */}
       <ConfirmModal
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
         onConfirm={confirmDelete}
         title="Delete Repair Query"
-        message="Are you sure you want to delete this repair query? This action cannot be undone."
+        message="Are you sure you want to delete this repair request? This action cannot be undone."
         confirmText="Delete"
         isDestructive={true}
         isLoading={isDeleting}

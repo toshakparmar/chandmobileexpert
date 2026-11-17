@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -13,6 +13,8 @@ import { api } from "@/lib/api";
 import { Modal } from "../ui/modal";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
+import Pagination from "./Pagination";
+import ComponentLoader from "../common/ComponentLoader";
 
 // Inline icons for self-contained robustness
 const CheckCircle = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -67,6 +69,9 @@ export default function PaymentTable() {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   // Verify modal state
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
@@ -169,40 +174,90 @@ export default function PaymentTable() {
 
   const pendingCount = payments.filter((p) => p.status === "AWAITING_VERIFICATION").length;
 
+  const filteredPayments = useMemo(() => {
+    const safePayments = Array.isArray(payments) ? payments : [];
+    if (!searchQuery.trim()) return safePayments;
+    const q = searchQuery.toLowerCase();
+    return safePayments.filter((p) => {
+      const customerName = (
+        p.order?.userName ||
+        [p.order?.user?.firstName, p.order?.user?.lastName].filter(Boolean).join(" ") ||
+        ""
+      ).toLowerCase();
+      const phone = (p.order?.userPhone || p.order?.user?.phone || "").toLowerCase();
+      const utr = (p.utr || "").toLowerCase();
+      const id = p.id.toLowerCase();
+      const orderId = p.orderId.toLowerCase();
+      return (
+        customerName.includes(q) ||
+        phone.includes(q) ||
+        utr.includes(q) ||
+        id.includes(q) ||
+        orderId.includes(q)
+      );
+    });
+  }, [payments, searchQuery]);
+
+  const totalPages = Math.ceil(filteredPayments.length / pageSize) || 1;
+  const paginatedPayments = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredPayments.slice(start, start + pageSize);
+  }, [filteredPayments, currentPage, pageSize]);
+
+  if (loading && payments.length === 0) {
+    return <ComponentLoader text="Loading UPI payment records..." />;
+  }
+
   return (
     <div className="space-y-4">
-      {/* Top Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {(["ALL", "AWAITING_VERIFICATION", "PAID", "REJECTED", "AWAITING_PAYMENT"] as const).map((st) => (
-            <button
-              key={st}
-              type="button"
-              onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                statusFilter === st
-                  ? "bg-brand-500 text-gray-900 shadow-2xs font-bold"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-              }`}
-            >
-              <span>{st.replace(/_/g, " ")}</span>
-              {st === "AWAITING_VERIFICATION" && pendingCount > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-orange-500 text-white text-[10px] font-bold">
-                  {pendingCount}
-                </span>
-              )}
-            </button>
-          ))}
+      {/* Top Filter and Search Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative max-w-sm w-full">
+          <input
+            type="text"
+            placeholder="Search by 12-digit UTR, Order ID, Customer..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-xs shadow-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-800 dark:bg-white/[0.03] dark:text-white"
+          />
         </div>
 
         <button
           type="button"
           onClick={() => fetchPayments()}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition-colors cursor-pointer shrink-0 self-end sm:self-auto"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-          <span>Refresh</span>
+          <span>Refresh Records</span>
         </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        {(["ALL", "AWAITING_VERIFICATION", "PAID", "REJECTED", "AWAITING_PAYMENT"] as const).map((st) => (
+          <button
+            key={st}
+            type="button"
+            onClick={() => {
+              setStatusFilter(st);
+              setCurrentPage(1);
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              statusFilter === st
+                ? "bg-brand-500 text-white shadow-sm font-bold"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            }`}
+          >
+            <span>{st.replace(/_/g, " ")}</span>
+            {st === "AWAITING_VERIFICATION" && pendingCount > 0 && (
+              <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-bold">
+                {pendingCount}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Verification Notice */}
@@ -214,9 +269,9 @@ export default function PaymentTable() {
       </div>
 
       {/* Payments Table */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+      <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] shadow-sm">
         <Table>
-          <TableHeader className="bg-gray-50 dark:bg-gray-800/50">
+          <TableHeader className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-white/[0.05]">
             <TableRow>
               <TableCell isHeader className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Payment / Order ID
@@ -249,14 +304,14 @@ export default function PaymentTable() {
                   Loading UPI payment records...
                 </TableCell>
               </TableRow>
-            ) : payments.length === 0 ? (
+            ) : paginatedPayments.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-gray-400 text-xs">
-                  No payment records found matching filter.
+                  {searchQuery ? "No payment records match your search criteria." : "No payment records found matching filter."}
                 </TableCell>
               </TableRow>
             ) : (
-              payments.map((p) => {
+              paginatedPayments.map((p) => {
                 const customerName =
                   p.order?.userName ||
                   [p.order?.user?.firstName, p.order?.user?.lastName].filter(Boolean).join(" ") ||
@@ -370,6 +425,14 @@ export default function PaymentTable() {
           </TableBody>
         </Table>
       </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={filteredPayments.length}
+        itemsPerPage={pageSize}
+        onPageChange={setCurrentPage}
+      />
 
       {/* VERIFY MODAL */}
       <Modal isOpen={isVerifyModalOpen} onClose={() => setIsVerifyModalOpen(false)} className="max-w-md p-6">

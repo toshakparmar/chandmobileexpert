@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -12,6 +12,8 @@ import { Modal } from "../ui/modal";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
+import Pagination from "./Pagination";
+import ComponentLoader from "../common/ComponentLoader";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 
 interface Service {
@@ -24,6 +26,14 @@ interface Service {
 export default function ServiceTable() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,10 +48,12 @@ export default function ServiceTable() {
   const fetchServices = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await api.get("/services");
       setServices(Array.isArray(response.data) ? response.data : []);
-    } catch (error) {
-      console.error("Failed to fetch services", error);
+    } catch (err: any) {
+      console.error("Failed to fetch services", err);
+      setError(err?.response?.data?.message || err?.message || "Failed to fetch services");
       setServices([]);
     } finally {
       setLoading(false);
@@ -81,8 +93,11 @@ export default function ServiceTable() {
 
     try {
       setIsSubmitting(true);
-      const payload = { name, basePrice: parseFloat(basePrice) };
-      
+      const payload = {
+        name: name.trim(),
+        basePrice: parseFloat(basePrice),
+      };
+
       if (modalMode === "create") {
         await api.post("/services", payload);
       } else if (modalMode === "edit" && selectedService) {
@@ -90,79 +105,125 @@ export default function ServiceTable() {
       }
       await fetchServices();
       closeModal();
-    } catch (error) {
-      console.error(`Failed to ${modalMode} service`, error);
-      alert(`Failed to ${modalMode} service`);
+    } catch (err: any) {
+      console.error(`Failed to ${modalMode} service`, err);
+      alert(err?.response?.data?.message || `Failed to ${modalMode} service`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this service?")) return;
+    if (!window.confirm("Are you sure you want to delete this repair service?")) return;
     try {
       await api.delete(`/services/${id}`);
       await fetchServices();
-    } catch (error) {
-      console.error("Failed to delete service", error);
-      alert("Failed to delete service");
+    } catch (err: any) {
+      console.error("Failed to delete service", err);
+      alert(err?.response?.data?.message || "Failed to delete service");
     }
   };
 
-  if (loading && services.length === 0) return <div className="p-5">Loading services...</div>;
+  const filteredServices = useMemo(() => {
+    const safeServices = Array.isArray(services) ? services : [];
+    if (!searchQuery.trim()) return safeServices;
+    const q = searchQuery.toLowerCase();
+    return safeServices.filter((s) => s.name.toLowerCase().includes(q));
+  }, [services, searchQuery]);
+
+  const totalPages = Math.ceil(filteredServices.length / pageSize) || 1;
+  const paginatedServices = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredServices.slice(start, start + pageSize);
+  }, [filteredServices, currentPage, pageSize]);
+
+  if (loading && services.length === 0) {
+    return <ComponentLoader text="Loading repair services..." />;
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300 flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={fetchServices} className="font-semibold text-red-700 underline">
+            Retry
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative max-w-sm w-full">
+          <input
+            type="text"
+            placeholder="Search services (Screen replacement, Battery, etc.)..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-xs shadow-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-800 dark:bg-white/[0.03] dark:text-white"
+          />
+        </div>
         <Button onClick={openCreateModal}>
           + Add Service
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03] shadow-sm">
         <div className="max-w-full overflow-x-auto">
-          <div className="min-w-[800px]">
+          <div className="min-w-[700px]">
             <Table>
-              <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+              <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-white/[0.02]">
                 <TableRow>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">Name</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">Base Price</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs">Created At</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-end text-theme-xs">Actions</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Service Name</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Starting Price</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Created At</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-end text-theme-xs">Actions</TableCell>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {services.map((service) => (
-                  <TableRow key={service.id}>
-                    <TableCell className="px-5 py-4 sm:px-6 text-start">
-                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                {paginatedServices.map((service) => (
+                  <TableRow key={service.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition">
+                    <TableCell className="px-5 py-3.5 text-start">
+                      <span className="block font-semibold text-gray-900 text-theme-sm dark:text-white">
                         {service.name}
                       </span>
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      ${service.basePrice}
+                    <TableCell className="px-4 py-3.5 font-bold text-gray-900 text-start text-theme-sm dark:text-white">
+                      ₹{Number(service.basePrice || 0).toLocaleString("en-IN")}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {new Date(service.createdAt).toLocaleDateString()}
+                    <TableCell className="px-4 py-3.5 text-gray-400 text-start text-xs">
+                      {new Date(service.createdAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-end text-theme-sm dark:text-gray-400">
+                    <TableCell className="px-4 py-3.5 text-gray-500 text-end text-theme-sm dark:text-gray-400">
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => openEditModal(service)}
-                          className="text-brand-500 hover:text-brand-600 font-medium"
-                         title="Edit"><PencilIcon className="w-5 h-5" /></button>
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-white/5 transition"
+                          title="Edit"
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleDelete(service.id)}
-                          className="text-error-500 hover:text-error-600 font-medium"
-                         title="Delete"><TrashBinIcon className="w-5 h-5" /></button>
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-error-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition"
+                          title="Delete"
+                        >
+                          <TrashBinIcon className="w-4 h-4" />
+                        </button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
-                {services.length === 0 && !loading && (
+                {paginatedServices.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={4} className="px-5 py-4 text-center text-gray-500">
-                      No services found.
+                    <TableCell colSpan={4} className="px-5 py-8 text-center text-gray-400 text-xs">
+                      {searchQuery ? "No matching repair services found." : "No services found."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -170,43 +231,57 @@ export default function ServiceTable() {
             </Table>
           </div>
         </div>
+
+        {/* Pagination */}
+        <div className="px-5 py-3">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredServices.length}
+            itemsPerPage={pageSize}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={closeModal} className="max-w-[500px] p-6">
-        <h3 className="mb-5 text-lg font-bold text-gray-800 dark:text-white/90">
-          {modalMode === "create" ? "Add Service" : "Edit Service"}
+      {/* Modal */}
+      <Modal isOpen={isModalOpen} onClose={closeModal} className="max-w-[450px] p-6">
+        <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">
+          {modalMode === "create" ? "Add Repair Service" : "Edit Service"}
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="name">Service Name</Label>
+            <Label htmlFor="serviceName">Service Name *</Label>
             <Input
-              id="name"
+              id="serviceName"
               type="text"
+              placeholder="e.g. Glass & Display Replacement"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Screen Replacement"
               required
             />
           </div>
+
           <div>
-            <Label htmlFor="basePrice">Base Price ($)</Label>
+            <Label htmlFor="basePrice">Starting Base Price (₹) *</Label>
             <Input
               id="basePrice"
               type="number"
-              min="0"
-              step={0.01}
+              min={0}
+              step="1"
+              placeholder="e.g. 1499"
               value={basePrice}
               onChange={(e) => setBasePrice(e.target.value)}
-              placeholder="e.g. 50.00"
               required
             />
           </div>
-          <div className="flex justify-end gap-3 mt-6">
+
+          <div className="flex justify-end gap-2.5 pt-4 border-t border-gray-100 dark:border-white/[0.05]">
             <Button variant="outline" onClick={closeModal} type="button">
               Cancel
             </Button>
             <Button disabled={isSubmitting} type="submit">
-              {isSubmitting ? "Saving..." : modalMode === "create" ? "Create" : "Save Changes"}
+              {isSubmitting ? "Saving..." : modalMode === "create" ? "Create Service" : "Save Changes"}
             </Button>
           </div>
         </form>

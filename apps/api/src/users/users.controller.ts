@@ -16,6 +16,13 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  create(@Body() data: any) {
+    return this.usersService.create(data);
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   getMe(@Req() req) {
