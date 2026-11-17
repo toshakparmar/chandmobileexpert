@@ -86,7 +86,7 @@ export default function SubCategoryTable() {
   const openEditModal = (subCat: SubCategory) => {
     setModalMode("edit");
     setName(subCat.name);
-    setCategoryId(subCat.categoryId.toString());
+    setCategoryId(subCat.categoryId ? subCat.categoryId.toString() : (categories.length > 0 ? categories[0].value : ""));
     setSelectedSubCategory(subCat);
     setIsModalOpen(true);
   };

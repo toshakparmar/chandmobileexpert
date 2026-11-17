@@ -282,6 +282,7 @@ model Service {
   name        String  @unique // e.g., Screen Replacement, Battery
   icon        String?
   description String?
+  basePrice   Decimal? @default(0) @db.Decimal(10, 2)
   isActive    Boolean @default(true)
 
   devices DeviceServicePricing[]

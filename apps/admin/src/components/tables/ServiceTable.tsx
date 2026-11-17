@@ -9,6 +9,7 @@ import {
 } from "../ui/table";
 import { api } from "@/lib/api";
 import { Modal } from "../ui/modal";
+import { ConfirmModal } from "../ui/modal/ConfirmModal";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
@@ -19,7 +20,8 @@ import { ActionGroup, EditAction, DeleteAction } from "../common/TableActions";
 interface Service {
   id: string;
   name: string;
-  basePrice: number;
+  description?: string | null;
+  basePrice?: number | string | null;
   createdAt: string;
 }
 
@@ -43,7 +45,13 @@ export default function ServiceTable() {
   // Form states
   const [name, setName] = useState("");
   const [basePrice, setBasePrice] = useState("");
+  const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Confirm Modal states
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchServices = async () => {
     try {
@@ -68,14 +76,16 @@ export default function ServiceTable() {
     setModalMode("create");
     setName("");
     setBasePrice("");
+    setDescription("");
     setSelectedService(null);
     setIsModalOpen(true);
   };
 
   const openEditModal = (service: Service) => {
     setModalMode("edit");
-    setName(service.name);
-    setBasePrice(service.basePrice.toString());
+    setName(service.name || "");
+    setBasePrice(service.basePrice != null ? String(service.basePrice) : "");
+    setDescription(service.description || "");
     setSelectedService(service);
     setIsModalOpen(true);
   };
@@ -84,19 +94,23 @@ export default function ServiceTable() {
     setIsModalOpen(false);
     setName("");
     setBasePrice("");
+    setDescription("");
     setSelectedService(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !basePrice) return;
+    if (!name.trim()) return;
 
     try {
       setIsSubmitting(true);
-      const payload = {
+      const payload: any = {
         name: name.trim(),
-        basePrice: parseFloat(basePrice),
+        basePrice: basePrice !== "" ? parseFloat(basePrice) : 0,
       };
+      if (description.trim()) {
+        payload.description = description.trim();
+      }
 
       if (modalMode === "create") {
         await api.post("/services", payload);
@@ -113,14 +127,24 @@ export default function ServiceTable() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this repair service?")) return;
+  const handleDeleteClick = (id: string) => {
+    setDeleteId(id);
+    setIsConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
     try {
-      await api.delete(`/services/${id}`);
+      setIsDeleting(true);
+      await api.delete(`/services/${deleteId}`);
       await fetchServices();
+      setIsConfirmOpen(false);
+      setDeleteId(null);
     } catch (err: any) {
       console.error("Failed to delete service", err);
       alert(err?.response?.data?.message || "Failed to delete service");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -128,7 +152,11 @@ export default function ServiceTable() {
     const safeServices = Array.isArray(services) ? services : [];
     if (!searchQuery.trim()) return safeServices;
     const q = searchQuery.toLowerCase();
-    return safeServices.filter((s) => s.name.toLowerCase().includes(q));
+    return safeServices.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        (s.description && s.description.toLowerCase().includes(q))
+    );
   }, [services, searchQuery]);
 
   const totalPages = Math.ceil(filteredServices.length / pageSize) || 1;
@@ -156,7 +184,7 @@ export default function ServiceTable() {
         <div className="relative max-w-sm w-full">
           <input
             type="text"
-            placeholder="Search services (Screen replacement, Battery, etc.)..."
+            placeholder="Search services (Screen, Battery, etc.)..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -177,7 +205,7 @@ export default function ServiceTable() {
               <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-white/[0.02]">
                 <TableRow>
                   <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Service Name</TableCell>
-                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Starting Price</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Starting Base Price</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Created At</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-end text-theme-xs">Actions</TableCell>
                 </TableRow>
@@ -189,9 +217,16 @@ export default function ServiceTable() {
                       <span className="block font-semibold text-gray-900 text-theme-sm dark:text-white">
                         {service.name}
                       </span>
+                      {service.description && (
+                        <span className="block text-xs text-gray-400 mt-0.5 max-w-md truncate">
+                          {service.description}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="px-4 py-3.5 font-bold text-gray-900 text-start text-theme-sm dark:text-white">
-                      ₹{Number(service.basePrice || 0).toLocaleString("en-IN")}
+                      {service.basePrice != null && Number(service.basePrice) > 0
+                        ? `₹${Number(service.basePrice).toLocaleString("en-IN")}`
+                        : "₹0"}
                     </TableCell>
                     <TableCell className="px-4 py-3.5 text-gray-400 text-start text-xs">
                       {new Date(service.createdAt).toLocaleDateString("en-IN", {
@@ -207,7 +242,7 @@ export default function ServiceTable() {
                           title="Edit Service"
                         />
                         <DeleteAction
-                          onClick={() => handleDelete(service.id)}
+                          onClick={() => handleDeleteClick(service.id)}
                           title="Delete Service"
                         />
                       </ActionGroup>
@@ -238,7 +273,7 @@ export default function ServiceTable() {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Create / Edit Modal */}
       <Modal isOpen={isModalOpen} onClose={closeModal} className="max-w-[450px] p-6">
         <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">
           {modalMode === "create" ? "Add Repair Service" : "Edit Service"}
@@ -257,7 +292,7 @@ export default function ServiceTable() {
           </div>
 
           <div>
-            <Label htmlFor="basePrice">Starting Base Price (₹) *</Label>
+            <Label htmlFor="basePrice">Starting Base Price (₹)</Label>
             <Input
               id="basePrice"
               type="number"
@@ -266,7 +301,18 @@ export default function ServiceTable() {
               placeholder="e.g. 1499"
               value={basePrice}
               onChange={(e) => setBasePrice(e.target.value)}
-              required
+            />
+            <p className="text-xs text-gray-400 mt-1">Starting base estimate for customer inquiries.</p>
+          </div>
+
+          <div>
+            <Label htmlFor="serviceDesc">Description (Optional)</Label>
+            <Input
+              id="serviceDesc"
+              type="text"
+              placeholder="e.g. OEM grade screen with warranty"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
             />
           </div>
 
@@ -280,6 +326,17 @@ export default function ServiceTable() {
           </div>
         </form>
       </Modal>
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Repair Service"
+        message="Are you sure you want to delete this repair service? Any linked device pricing models may also be affected."
+        confirmText="Delete"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

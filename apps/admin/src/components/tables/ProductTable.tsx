@@ -129,12 +129,12 @@ export default function ProductTable() {
 
   const openEditModal = (product: Product) => {
     setModalMode("edit");
-    setName(product.name);
-    setSku(product.sku);
-    setBasePrice(product.basePrice.toString());
-    setSalePrice(product.salePrice ? product.salePrice.toString() : "");
-    setStockStatus(product.stockStatus);
-    setCategoryId(product.categoryId.toString());
+    setName(product.name || "");
+    setSku(product.sku || "");
+    setBasePrice(product.basePrice != null ? product.basePrice.toString() : "");
+    setSalePrice(product.salePrice != null ? product.salePrice.toString() : "");
+    setStockStatus(product.stockStatus || "IN_STOCK");
+    setCategoryId(product.categoryId ? product.categoryId.toString() : "");
     setSubCategoryId(product.subCategoryId ? product.subCategoryId.toString() : "");
     setBrandId(product.brandId ? product.brandId.toString() : "");
     setSelectedProduct(product);

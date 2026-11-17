@@ -85,7 +85,7 @@ export default function DeviceTable() {
   const openEditModal = (device: Device) => {
     setModalMode("edit");
     setName(device.name);
-    setBrandId(device.brandId.toString());
+    setBrandId(device.brandId ? device.brandId.toString() : (brands.length > 0 ? brands[0].value : ""));
     setSelectedDevice(device);
     setIsModalOpen(true);
   };
