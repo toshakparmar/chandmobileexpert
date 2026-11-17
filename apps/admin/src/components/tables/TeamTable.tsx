@@ -55,9 +55,10 @@ export default function TeamTable() {
     try {
       setLoading(true);
       const response = await api.get("/teams");
-      setMembers(response.data);
+      setMembers(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to fetch team members", error);
+      setMembers([]);
     } finally {
       setLoading(false);
     }

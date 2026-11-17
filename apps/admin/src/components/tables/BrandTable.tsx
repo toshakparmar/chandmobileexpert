@@ -38,9 +38,10 @@ export default function BrandTable() {
     try {
       setLoading(true);
       const response = await api.get("/brands");
-      setBrands(response.data);
+      setBrands(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to fetch brands", error);
+      setBrands([]);
     } finally {
       setLoading(false);
     }

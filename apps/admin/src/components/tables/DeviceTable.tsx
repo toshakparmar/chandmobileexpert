@@ -45,8 +45,8 @@ export default function DeviceTable() {
         api.get("/devices"),
         api.get("/brands")
       ]);
-      setDevices(devicesRes.data);
-      setBrands(brandsRes.data.map((b: any) => ({ value: b.id.toString(), label: b.name })));
+      setDevices(Array.isArray(devicesRes.data) ? devicesRes.data : []);
+      setBrands(Array.isArray(brandsRes.data) ? brandsRes.data.map((b: any) => ({ value: b.id.toString(), label: b.name })) : []);
     } catch (error) {
       console.error("Failed to fetch data", error);
     } finally {
@@ -139,7 +139,7 @@ export default function DeviceTable() {
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {devices.map((device) => (
+                {Array.isArray(devices) && devices.map((device) => (
                   <TableRow key={device.id}>
                     <TableCell className="px-5 py-4 sm:px-6 text-start">
                       <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">

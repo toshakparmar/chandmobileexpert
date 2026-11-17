@@ -68,10 +68,10 @@ export default function ProductTable() {
         api.get("/sub-categories"),
         api.get("/brands"),
       ]);
-      setProducts(prodRes.data);
-      setCategories(catRes.data.map((c: any) => ({ value: c.id.toString(), label: c.name })));
-      setSubCategories(subCatRes.data.map((sc: any) => ({ value: sc.id.toString(), label: sc.name, categoryId: sc.categoryId.toString() })));
-      setBrands(brandRes.data.map((b: any) => ({ value: b.id.toString(), label: b.name })));
+      setProducts(Array.isArray(prodRes.data) ? prodRes.data : []);
+      setCategories(Array.isArray(catRes.data) ? catRes.data.map((c: any) => ({ value: c.id.toString(), label: c.name })) : []);
+      setSubCategories(Array.isArray(subCatRes.data) ? subCatRes.data.map((sc: any) => ({ value: sc.id.toString(), label: sc.name, categoryId: sc.categoryId.toString() })) : []);
+      setBrands(Array.isArray(brandRes.data) ? brandRes.data.map((b: any) => ({ value: b.id.toString(), label: b.name })) : []);
     } catch (error) {
       console.error("Failed to fetch data", error);
     } finally {
@@ -198,7 +198,7 @@ export default function ProductTable() {
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {products.map((product) => (
+                {Array.isArray(products) && products.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell className="px-5 py-4 sm:px-6 text-start">
                       <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">

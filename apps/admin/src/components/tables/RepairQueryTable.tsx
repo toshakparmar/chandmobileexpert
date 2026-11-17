@@ -48,9 +48,10 @@ export default function RepairQueryTable() {
     try {
       setLoading(true);
       const response = await api.get("/book-repairs");
-      setQueries(response.data);
+      setQueries(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to fetch repair queries", error);
+      setQueries([]);
     } finally {
       setLoading(false);
     }

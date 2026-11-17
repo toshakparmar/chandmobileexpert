@@ -39,9 +39,10 @@ export default function ServiceTable() {
     try {
       setLoading(true);
       const response = await api.get("/services");
-      setServices(response.data);
+      setServices(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to fetch services", error);
+      setServices([]);
     } finally {
       setLoading(false);
     }

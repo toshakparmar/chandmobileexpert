@@ -44,9 +44,10 @@ export default function FaqTable() {
     try {
       setLoading(true);
       const response = await api.get("/faqs");
-      setFaqs(response.data);
+      setFaqs(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to fetch FAQs", error);
+      setFaqs([]);
     } finally {
       setLoading(false);
     }

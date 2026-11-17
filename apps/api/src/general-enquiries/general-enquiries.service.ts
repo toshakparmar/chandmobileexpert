@@ -8,8 +8,10 @@ export class GeneralEnquiriesService {
   constructor(private readonly prisma: PrismaService) {}
   async create(dto: any) { return this.prisma.generalEnquiry.create({ data: dto }); }
 
-  findAll() {
-    return `This action returns all generalEnquiries`;
+  async findAll() {
+    return this.prisma.generalEnquiry.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async findOne(id: string) { return this.prisma.generalEnquiry.findUnique({ where: { id } }); }

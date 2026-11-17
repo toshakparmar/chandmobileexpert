@@ -44,9 +44,10 @@ export default function OrderTable() {
     try {
       setLoading(true);
       const response = await api.get("/orders");
-      setOrders(response.data);
+      setOrders(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to fetch orders", error);
+      setOrders([]);
     } finally {
       setLoading(false);
     }

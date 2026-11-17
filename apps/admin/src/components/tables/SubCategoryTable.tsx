@@ -45,8 +45,8 @@ export default function SubCategoryTable() {
         api.get("/sub-categories"),
         api.get("/categories")
       ]);
-      setSubCategories(subCatRes.data);
-      setCategories(catRes.data.map((c: any) => ({ value: c.id.toString(), label: c.name })));
+      setSubCategories(Array.isArray(subCatRes.data) ? subCatRes.data : []);
+      setCategories(Array.isArray(catRes.data) ? catRes.data.map((c: any) => ({ value: c.id.toString(), label: c.name })) : []);
     } catch (error) {
       console.error("Failed to fetch data", error);
     } finally {
@@ -139,7 +139,7 @@ export default function SubCategoryTable() {
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {subCategories.map((sub) => (
+                {Array.isArray(subCategories) && subCategories.map((sub) => (
                   <TableRow key={sub.id}>
                     <TableCell className="px-5 py-4 sm:px-6 text-start">
                       <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">

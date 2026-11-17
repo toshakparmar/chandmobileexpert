@@ -40,9 +40,16 @@ export default function GeneralEnquiryTable() {
     try {
       setLoading(true);
       const response = await api.get("/general-enquiries");
-      setEnquiries(response.data);
+      if (Array.isArray(response.data)) {
+        setEnquiries(response.data);
+      } else if (response.data && Array.isArray(response.data.data)) {
+        setEnquiries(response.data.data);
+      } else {
+        setEnquiries([]);
+      }
     } catch (error) {
       console.error("Failed to fetch enquiries", error);
+      setEnquiries([]);
     } finally {
       setLoading(false);
     }
@@ -92,7 +99,16 @@ export default function GeneralEnquiryTable() {
     }
   };
 
-  if (loading && enquiries.length === 0) return <div className="p-5">Loading enquiries...</div>;
+  if (loading && enquiries.length === 0) {
+    return (
+      <div className="flex h-48 items-center justify-center rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
+        <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <span>Loading enquiries...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -111,7 +127,7 @@ export default function GeneralEnquiryTable() {
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {enquiries.map((enq) => (
+                {Array.isArray(enquiries) && enquiries.map((enq) => (
                   <TableRow key={enq.id}>
                     <TableCell className="px-5 py-4 sm:px-6 text-start">
                       <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">

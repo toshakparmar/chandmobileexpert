@@ -44,9 +44,10 @@ export default function CategoryTable() {
     try {
       setLoading(true);
       const response = await api.get("/categories");
-      setCategories(response.data);
+      setCategories(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to fetch categories", error);
+      setCategories([]);
     } finally {
       setLoading(false);
     }

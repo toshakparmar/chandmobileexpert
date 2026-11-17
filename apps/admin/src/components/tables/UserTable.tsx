@@ -52,7 +52,7 @@ export default function UserTable() {
     try {
       setLoading(true);
       const response = await api.get("/users");
-      setUsers(response.data);
+      setUsers(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to fetch users", error);
     } finally {
@@ -125,8 +125,9 @@ export default function UserTable() {
 
   if (loading && users.length === 0) return <div className="p-5">Loading users...</div>;
 
-  // Filter out SUPER_ADMIN role users
-  const filteredUsers = users.filter((u) => u.role !== "SUPER_ADMIN");
+  // Filter out SUPER_ADMIN role users safely
+  const safeUsers = Array.isArray(users) ? users : [];
+  const filteredUsers = safeUsers.filter((u) => u.role !== "SUPER_ADMIN");
 
   return (
     <div className="space-y-4">
@@ -148,7 +149,7 @@ export default function UserTable() {
               </TableHeader>
 
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {filteredUsers.map((user, index) => (
+                {Array.isArray(filteredUsers) && filteredUsers.map((user, index) => (
                   <TableRow key={user.id}>
                     <TableCell className="px-5 py-4 sm:px-6 text-start">
                       <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
