@@ -25,6 +25,7 @@ interface Category {
 export default function CategoryTable() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,10 +44,16 @@ export default function CategoryTable() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await api.get("/categories");
       setCategories(Array.isArray(response.data) ? response.data : []);
-    } catch (error) {
-      console.error("Failed to fetch categories", error);
+    } catch (err: any) {
+      console.error("Failed to fetch categories", err);
+      const msg =
+        err?.message === "Network Error"
+          ? "Unable to reach backend API at " + (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000") + ". Ensure the NestJS server is running."
+          : (err?.response?.data?.message || err?.message || "Failed to fetch categories");
+      setError(msg);
       setCategories([]);
     } finally {
       setLoading(false);
@@ -123,6 +130,21 @@ export default function CategoryTable() {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={fetchCategories}
+            className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       <div className="flex justify-end">
         <Button onClick={openCreateModal}>
           + Add Category
