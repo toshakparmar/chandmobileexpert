@@ -73,32 +73,34 @@ export default function ProductTable() {
     try {
       setLoading(true);
       setError(null);
-      const [prodRes, catRes, subCatRes, brandRes] = await Promise.all([
+      const [prodRes, catRes, subCatRes, brandRes] = await Promise.allSettled([
         api.get("/products"),
         api.get("/categories"),
         api.get("/sub-categories"),
         api.get("/brands"),
       ]);
-      setProducts(Array.isArray(prodRes.data) ? prodRes.data : []);
-      setCategories(
-        Array.isArray(catRes.data)
-          ? catRes.data.map((c: any) => ({ value: c.id.toString(), label: c.name }))
-          : []
-      );
-      setSubCategories(
-        Array.isArray(subCatRes.data)
-          ? subCatRes.data.map((sc: any) => ({
-              value: sc.id.toString(),
-              label: sc.name,
-              categoryId: sc.categoryId.toString(),
-            }))
-          : []
-      );
-      setBrands(
-        Array.isArray(brandRes.data)
-          ? brandRes.data.map((b: any) => ({ value: b.id.toString(), label: b.name }))
-          : []
-      );
+
+      if (prodRes.status === "fulfilled" && Array.isArray(prodRes.value.data)) {
+        setProducts(prodRes.value.data);
+      } else if (prodRes.status === "rejected") {
+        throw prodRes.reason;
+      }
+
+      if (catRes.status === "fulfilled" && Array.isArray(catRes.value.data)) {
+        setCategories(catRes.value.data.map((c: any) => ({ value: c.id.toString(), label: c.name })));
+      }
+      if (subCatRes.status === "fulfilled" && Array.isArray(subCatRes.value.data)) {
+        setSubCategories(
+          subCatRes.value.data.map((sc: any) => ({
+            value: sc.id.toString(),
+            label: sc.name,
+            categoryId: sc.categoryId.toString(),
+          }))
+        );
+      }
+      if (brandRes.status === "fulfilled" && Array.isArray(brandRes.value.data)) {
+        setBrands(brandRes.value.data.map((b: any) => ({ value: b.id.toString(), label: b.name })));
+      }
     } catch (err: any) {
       console.error("Failed to fetch product data", err);
       setError(err?.response?.data?.message || err?.message || "Failed to fetch products");

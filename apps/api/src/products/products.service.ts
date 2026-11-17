@@ -11,6 +11,7 @@ export class ProductsService {
       include: {
         category: { select: { id: true, name: true, slug: true } },
         subCategory: { select: { id: true, name: true, slug: true } },
+        brand: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -27,6 +28,7 @@ export class ProductsService {
       include: {
         category: { select: { id: true, name: true, slug: true } },
         subCategory: { select: { id: true, name: true, slug: true } },
+        brand: { select: { id: true, name: true } },
       },
     });
   }
@@ -53,15 +55,18 @@ export class ProductsService {
         price,
         discountPrice,
         image: data.image || null,
+        sku: data.sku || null,
         stockCount,
         inStock,
         isActive: data.isActive ?? true,
         categoryId: data.categoryId,
         subCategoryId: data.subCategoryId || null,
+        brandId: data.brandId || null,
       },
       include: {
         category: true,
         subCategory: true,
+        brand: true,
       },
     });
   }
@@ -86,6 +91,8 @@ export class ProductsService {
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
     if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
     if (data.subCategoryId !== undefined) updateData.subCategoryId = data.subCategoryId || null;
+    if (data.brandId !== undefined) updateData.brandId = data.brandId || null;
+    if (data.sku !== undefined) updateData.sku = data.sku || null;
 
     return this.prisma.product.update({
       where: { id },
@@ -93,6 +100,7 @@ export class ProductsService {
       include: {
         category: true,
         subCategory: true,
+        brand: true,
       },
     });
   }

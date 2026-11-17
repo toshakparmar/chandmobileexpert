@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
+import ComponentLoader from "../common/ComponentLoader";
 
 interface BusinessProfile {
   companyName: string;
@@ -77,10 +78,12 @@ export default function BusinessProfileForm() {
     }
   };
 
-  if (loading) return <div className="p-5">Loading profile...</div>;
+  if (loading) {
+    return <ComponentLoader text="Loading Business & UPI configurations..." />;
+  }
 
   return (
-    <div>
+    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
       <form onSubmit={handleSubmit} className="space-y-6">
         <h3 className="text-lg font-bold text-gray-800 dark:text-white/90">
           General Information
