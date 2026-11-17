@@ -49,7 +49,7 @@ export const EcommerceMetrics = ({ totalUsers, totalOrders, totalRevenue, pendin
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">Total Revenue</span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              ${totalRevenue.toFixed(2)}
+              ₹{(totalRevenue || 0).toLocaleString('en-IN')}
             </h4>
           </div>
         </div>

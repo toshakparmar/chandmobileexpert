@@ -10,37 +10,52 @@ export class AppService {
   }
 
   async getAnalytics() {
-    const totalUsers = await this.prisma.user.count();
-    const totalOrders = await this.prisma.order.count();
-    const totalRevenue = await this.prisma.order.aggregate({
-      _sum: { totalAmount: true }
-    });
-    
-    const pendingRepairs = await this.prisma.repairQuery.count({
-      where: { status: 'PENDING' }
-    });
-    const totalRepairs = await this.prisma.repairQuery.count();
+    try {
+      const [totalUsers, totalOrders, totalRevenue, pendingRepairs, totalRepairs, pendingEnquiries, recentOrders] = await Promise.all([
+        this.prisma.user.count().catch(() => 0),
+        this.prisma.order.count().catch(() => 0),
+        this.prisma.order.aggregate({
+          _sum: { totalAmount: true }
+        }).catch(() => ({ _sum: { totalAmount: 0 } })),
+        this.prisma.repairQuery.count({
+          where: { status: 'PENDING' }
+        }).catch(() => 0),
+        this.prisma.repairQuery.count().catch(() => 0),
+        this.prisma.generalEnquiry.count({
+          where: { isResolved: false }
+        }).catch(() => 0),
+        this.prisma.order.findMany({
+          take: 5,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            user: { select: { email: true } }
+          }
+        }).catch(() => []),
+      ]);
 
-    const pendingEnquiries = await this.prisma.generalEnquiry.count({
-      where: { isResolved: false }
-    });
-
-    const recentOrders = await this.prisma.order.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: { select: { email: true } }
-      }
-    });
-
-    return {
-      totalUsers,
-      totalOrders,
-      totalRevenue: totalRevenue._sum?.totalAmount || 0,
-      pendingRepairs,
-      totalRepairs,
-      pendingEnquiries,
-      recentOrders,
-    };
+      return {
+        totalUsers,
+        totalOrders,
+        totalRevenue: Number(totalRevenue._sum?.totalAmount || 0),
+        pendingRepairs,
+        totalRepairs,
+        pendingEnquiries,
+        recentOrders: recentOrders.map((o: any) => ({
+          ...o,
+          totalAmount: Number(o.totalAmount || 0),
+        })),
+      };
+    } catch (err: any) {
+      console.error('Error fetching analytics:', err);
+      return {
+        totalUsers: 0,
+        totalOrders: 0,
+        totalRevenue: 0,
+        pendingRepairs: 0,
+        totalRepairs: 0,
+        pendingEnquiries: 0,
+        recentOrders: [],
+      };
+    }
   }
 }

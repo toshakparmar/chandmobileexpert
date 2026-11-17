@@ -11,27 +11,50 @@ import { api } from "@/lib/api";
 export default function Ecommerce() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get('/analytics');
+      setData(response.data);
+    } catch (err: any) {
+      console.error("Failed to fetch analytics:", err);
+      setError(err?.response?.data?.message || err?.message || "Failed to load analytics data.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const response = await api.get('/analytics');
-        setData(response.data);
-      } catch (error) {
-        console.error("Failed to fetch analytics:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchAnalytics();
   }, []);
 
   if (loading) {
-    return <div className="p-5">Loading Dashboard...</div>;
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <span>Loading Dashboard Analytics...</span>
+        </div>
+      </div>
+    );
   }
 
-  if (!data) {
-    return <div className="p-5">Failed to load analytics data.</div>;
+  if (error || !data) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-900/40 dark:bg-red-950/20">
+        <h4 className="text-base font-semibold text-red-800 dark:text-red-400">Unable to load analytics</h4>
+        <p className="mt-1 text-sm text-red-600 dark:text-red-300">{error || "Could not retrieve dashboard metrics."}</p>
+        <button
+          onClick={fetchAnalytics}
+          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition"
+        >
+          Try Again
+        </button>
+      </div>
+    );
   }
 
   return (

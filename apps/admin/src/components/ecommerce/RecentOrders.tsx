@@ -60,7 +60,7 @@ export default function RecentOrders({ orders = [] }: RecentOrdersProps) {
                   {order.user?.email || "Guest"}
                 </TableCell>
                 <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  ${order.totalAmount.toFixed(2)}
+                  ₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}
                 </TableCell>
                 <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                   <Badge
