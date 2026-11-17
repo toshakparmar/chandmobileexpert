@@ -13,9 +13,9 @@ import { api } from "@/lib/api";
 import { Modal } from "../ui/modal";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
-import { TrashBinIcon } from "@/icons";
 import Pagination from "./Pagination";
 import ComponentLoader from "../common/ComponentLoader";
+import { ActionGroup, ViewAction, DeleteAction } from "../common/TableActions";
 
 interface GeneralEnquiry {
   id: string;
@@ -251,21 +251,16 @@ export default function GeneralEnquiryTable() {
                     })}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-end">
-                    <div className="flex justify-end items-center gap-2">
-                      <button
+                    <ActionGroup>
+                      <ViewAction
                         onClick={() => openEditModal(enq)}
-                        className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 transition-colors"
-                      >
-                        View & Reply
-                      </button>
-                      <button
+                        title="View Enquiry & Reply"
+                      />
+                      <DeleteAction
                         onClick={() => handleDelete(enq.id)}
-                        className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-colors"
                         title="Delete Enquiry"
-                      >
-                        <TrashBinIcon className="w-4 h-4" />
-                      </button>
-                    </div>
+                      />
+                    </ActionGroup>
                   </TableCell>
                 </TableRow>
               ))}

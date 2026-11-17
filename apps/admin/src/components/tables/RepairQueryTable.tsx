@@ -16,7 +16,7 @@ import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Pagination from "./Pagination";
 import ComponentLoader from "../common/ComponentLoader";
-import { TrashBinIcon, PencilIcon, EyeIcon } from "@/icons";
+import { ActionGroup, ViewAction, EditAction, DeleteAction } from "../common/TableActions";
 
 interface RepairQuery {
   id: string;
@@ -281,30 +281,21 @@ export default function RepairQueryTable() {
                         year: "numeric",
                       })}
                     </TableCell>
-                    <TableCell className="px-4 py-3.5 text-gray-500 text-end text-theme-sm dark:text-gray-400">
-                      <div className="flex justify-end gap-2">
-                        <button
+                    <TableCell className="px-4 py-3 text-end">
+                      <ActionGroup>
+                        <ViewAction
                           onClick={() => openViewModal(query)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-white/5 transition"
                           title="View Details"
-                        >
-                          <EyeIcon className="w-4 h-4" />
-                        </button>
-                        <button
+                        />
+                        <EditAction
                           onClick={() => openEditModal(query)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-white/5 transition"
                           title="Diagnose & Update Status"
-                        >
-                          <PencilIcon className="w-4 h-4" />
-                        </button>
-                        <button
+                        />
+                        <DeleteAction
                           onClick={() => handleDeleteClick(query.id)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-error-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition"
-                          title="Delete"
-                        >
-                          <TrashBinIcon className="w-4 h-4" />
-                        </button>
-                      </div>
+                          title="Delete Query"
+                        />
+                      </ActionGroup>
                     </TableCell>
                   </TableRow>
                 ))}

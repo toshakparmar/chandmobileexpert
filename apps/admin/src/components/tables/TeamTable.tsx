@@ -14,9 +14,9 @@ import { Modal } from "../ui/modal";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
-import { PencilIcon, TrashBinIcon } from "@/icons";
 import Pagination from "./Pagination";
 import ComponentLoader from "../common/ComponentLoader";
+import { ActionGroup, EditAction, DeleteAction } from "../common/TableActions";
 
 const CheckCircleIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -293,33 +293,28 @@ export default function TeamTable() {
                   </TableCell>
 
                   <TableCell className="px-4 py-3 text-end">
-                    <div className="flex justify-end items-center gap-1.5">
+                    <ActionGroup>
                       <button
+                        type="button"
                         onClick={() => handleToggleActive(member)}
-                        className={`p-1.5 rounded-lg transition-colors ${
+                        className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border shadow-2xs transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer ${
                           member.isActive
-                            ? "text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20"
-                            : "text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                            ? "bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/40 border-amber-200/70"
+                            : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/40 border-emerald-200/70"
                         }`}
-                        title={member.isActive ? "Deactivate" : "Activate"}
+                        title={member.isActive ? "Deactivate Member" : "Activate Member"}
                       >
-                        {member.isActive ? <BanIcon className="w-4 h-4" /> : <CheckCircleIcon className="w-4 h-4" />}
+                        {member.isActive ? <BanIcon className="w-4 h-4 overflow-visible shrink-0" /> : <CheckCircleIcon className="w-4 h-4 overflow-visible shrink-0" />}
                       </button>
-                      <button
+                      <EditAction
                         onClick={() => openEditModal(member)}
-                        className="p-1.5 text-gray-500 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                         title="Edit Member"
-                      >
-                        <PencilIcon className="w-4 h-4" />
-                      </button>
-                      <button
+                      />
+                      <DeleteAction
                         onClick={() => handleDelete(member.id)}
-                        className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-colors"
                         title="Delete Member"
-                      >
-                        <TrashBinIcon className="w-4 h-4" />
-                      </button>
-                    </div>
+                      />
+                    </ActionGroup>
                   </TableCell>
                 </TableRow>
               ))}

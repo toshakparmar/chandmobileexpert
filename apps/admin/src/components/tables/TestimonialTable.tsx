@@ -14,9 +14,9 @@ import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
 import Badge from "../ui/badge/Badge";
-import { PencilIcon, TrashBinIcon } from "@/icons";
 import Pagination from "./Pagination";
 import ComponentLoader from "../common/ComponentLoader";
+import { ActionGroup, EditAction, DeleteAction } from "../common/TableActions";
 
 const StarIcon = ({ filled = true }: { filled?: boolean }) => (
   <svg
@@ -252,22 +252,16 @@ export default function TestimonialTable() {
                   </TableCell>
 
                   <TableCell className="px-4 py-3 text-end">
-                    <div className="flex justify-end gap-2">
-                      <button
+                    <ActionGroup>
+                      <EditAction
                         onClick={() => openEditModal(t)}
-                        className="p-1.5 text-gray-500 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                         title="Edit Testimonial"
-                      >
-                        <PencilIcon className="w-4 h-4" />
-                      </button>
-                      <button
+                      />
+                      <DeleteAction
                         onClick={() => handleDelete(t.id)}
-                        className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-colors"
                         title="Delete Testimonial"
-                      >
-                        <TrashBinIcon className="w-4 h-4" />
-                      </button>
-                    </div>
+                      />
+                    </ActionGroup>
                   </TableCell>
                 </TableRow>
               ))}

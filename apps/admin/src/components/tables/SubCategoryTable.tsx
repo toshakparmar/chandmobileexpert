@@ -14,7 +14,7 @@ import Label from "../form/Label";
 import Button from "../ui/button/Button";
 import Pagination from "./Pagination";
 import ComponentLoader from "../common/ComponentLoader";
-import { PencilIcon, TrashBinIcon } from "@/icons";
+import { ActionGroup, EditAction, DeleteAction } from "../common/TableActions";
 
 interface SubCategory {
   id: string;
@@ -223,23 +223,17 @@ export default function SubCategoryTable() {
                         year: "numeric",
                       })}
                     </TableCell>
-                    <TableCell className="px-4 py-3.5 text-gray-500 text-end text-theme-sm dark:text-gray-400">
-                      <div className="flex justify-end gap-2">
-                        <button
+                    <TableCell className="px-4 py-3 text-end">
+                      <ActionGroup>
+                        <EditAction
                           onClick={() => openEditModal(sub)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-white/5 transition"
-                          title="Edit"
-                        >
-                          <PencilIcon className="w-4 h-4" />
-                        </button>
-                        <button
+                          title="Edit Subcategory"
+                        />
+                        <DeleteAction
                           onClick={() => handleDelete(sub.id)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-error-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition"
-                          title="Delete"
-                        >
-                          <TrashBinIcon className="w-4 h-4" />
-                        </button>
-                      </div>
+                          title="Delete Subcategory"
+                        />
+                      </ActionGroup>
                     </TableCell>
                   </TableRow>
                 ))}
