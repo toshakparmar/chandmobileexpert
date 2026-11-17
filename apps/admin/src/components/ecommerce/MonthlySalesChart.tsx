@@ -1,23 +1,41 @@
 "use client";
+import React from "react";
 import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
-import { MoreDotIcon } from "@/icons";
-import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { useState } from "react";
-import { Dropdown } from "../ui/dropdown/Dropdown";
 
-// Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function MonthlySalesChart() {
+interface MonthlySalesChartProps {
+  data?: {
+    categories: string[];
+    revenue: number[];
+    orders: number[];
+  };
+}
+
+export default function MonthlySalesChart({ data }: MonthlySalesChartProps) {
+  const categories = data?.categories && data.categories.length > 0
+    ? data.categories
+    : ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+
+  const revenueData = data?.revenue && data.revenue.length > 0
+    ? data.revenue
+    : [0, 0, 0, 0, 0, 0];
+
+  const ordersData = data?.orders && data.orders.length > 0
+    ? data.orders
+    : [0, 0, 0, 0, 0, 0];
+
+  const totalPeriodRevenue = revenueData.reduce((acc, curr) => acc + curr, 0);
+
   const options: ApexOptions = {
-    colors: ["#a8d946"],
+    colors: ["#047857", "#10b981"],
     chart: {
       fontFamily: "Outfit, sans-serif",
       type: "bar",
-      height: 180,
+      height: 250,
       toolbar: {
         show: false,
       },
@@ -25,8 +43,8 @@ export default function MonthlySalesChart() {
     plotOptions: {
       bar: {
         horizontal: false,
-        columnWidth: "39%",
-        borderRadius: 5,
+        columnWidth: "42%",
+        borderRadius: 6,
         borderRadiusApplication: "end",
       },
     },
@@ -35,43 +53,63 @@ export default function MonthlySalesChart() {
     },
     stroke: {
       show: true,
-      width: 4,
+      width: 3,
       colors: ["transparent"],
     },
     xaxis: {
-      categories: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ],
+      categories,
       axisBorder: {
         show: false,
       },
       axisTicks: {
         show: false,
       },
+      labels: {
+        style: {
+          colors: "#64748b",
+          fontSize: "12px",
+        },
+      },
     },
     legend: {
       show: true,
       position: "top",
-      horizontalAlign: "left",
+      horizontalAlign: "right",
       fontFamily: "Outfit",
-    },
-    yaxis: {
-      title: {
-        text: undefined,
+      labels: {
+        colors: "#64748b",
       },
     },
+    yaxis: [
+      {
+        title: {
+          text: undefined,
+        },
+        labels: {
+          formatter: (val) => `₹${Math.round(val).toLocaleString("en-IN")}`,
+          style: {
+            colors: "#64748b",
+            fontSize: "11px",
+          },
+        },
+      },
+      {
+        opposite: true,
+        title: {
+          text: undefined,
+        },
+        labels: {
+          formatter: (val) => `${Math.round(val)} orders`,
+          style: {
+            colors: "#64748b",
+            fontSize: "11px",
+          },
+        },
+      },
+    ],
     grid: {
+      borderColor: "#f1f5f9",
+      strokeDashArray: 4,
       yaxis: {
         lines: {
           show: true,
@@ -81,71 +119,56 @@ export default function MonthlySalesChart() {
     fill: {
       opacity: 1,
     },
-
     tooltip: {
-      x: {
-        show: false,
-      },
+      shared: true,
+      intersect: false,
       y: {
-        formatter: (val: number) => `${val}`,
+        formatter: (val: number, opts) => {
+          if (opts.seriesIndex === 0) {
+            return `₹${Number(val || 0).toLocaleString("en-IN")}`;
+          }
+          return `${val} orders`;
+        },
       },
     },
   };
+
   const series = [
     {
-      name: "Sales",
-      data: [168, 385, 201, 298, 187, 195, 291, 110, 215, 390, 280, 112],
+      name: "Revenue (₹)",
+      data: revenueData,
+    },
+    {
+      name: "Orders Count",
+      data: ordersData,
     },
   ];
-  const [isOpen, setIsOpen] = useState(false);
-
-  function toggleDropdown() {
-    setIsOpen(!isOpen);
-  }
-
-  function closeDropdown() {
-    setIsOpen(false);
-  }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-          Monthly Sales
-        </h3>
-
-        <div className="relative inline-block">
-          <button onClick={toggleDropdown} className="dropdown-toggle">
-            <MoreDotIcon className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" />
-          </button>
-          <Dropdown
-            isOpen={isOpen}
-            onClose={closeDropdown}
-            className="w-40 p-2"
-          >
-            <DropdownItem
-              onItemClick={closeDropdown}
-              className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-            >
-              View More
-            </DropdownItem>
-            <DropdownItem
-              onItemClick={closeDropdown}
-              className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-            >
-              Delete
-            </DropdownItem>
-          </Dropdown>
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Sales & Revenue Trend
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Monthly performance across device sales & certified repairs
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center rounded-lg bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-950/60 dark:text-brand-300">
+            6-Month Volume: ₹{totalPeriodRevenue.toLocaleString("en-IN")}
+          </span>
         </div>
       </div>
 
-      <div className="max-w-full overflow-x-auto custom-scrollbar">
-        <div className="-ml-5 min-w-[650px] xl:min-w-full pl-2">
+      <div className="max-w-full overflow-x-auto">
+        <div className="-ml-3 min-w-[500px] xl:min-w-full">
           <ReactApexChart
             options={options}
             series={series}
             type="bar"
-            height={180}
+            height={250}
           />
         </div>
       </div>
