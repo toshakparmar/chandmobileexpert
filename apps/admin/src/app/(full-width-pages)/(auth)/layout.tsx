@@ -4,9 +4,6 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import Image from "next/image";
 import React from "react";
 
-import logoImg from "../../../../public/images/logo/logo.png";
-import darkLogoImg from "../../../../public/images/logo/dark-logo.png";
-
 export default function AuthLayout({
   children,
 }: {
@@ -52,14 +49,14 @@ export default function AuthLayout({
               
               <div className="block mb-10 relative w-72 h-32 transform transition-transform duration-700 group-hover:scale-105">
                 <Image
-                  src={logoImg}
+                  src="/images/logo/logo.png"
                   alt="Chand Mobile Expert Logo"
                   fill
                   priority
                   className="object-contain dark:hidden drop-shadow-sm"
                 />
                 <Image
-                  src={darkLogoImg}
+                  src="/images/logo/dark-logo.png"
                   alt="Chand Mobile Expert Logo"
                   fill
                   priority
