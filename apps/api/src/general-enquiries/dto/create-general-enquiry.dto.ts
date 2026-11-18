@@ -9,4 +9,6 @@ export const CreateGeneralEnquirySchema = z.object({
   message: z.string().min(1, 'Message is required'),
 });
 
-export class CreateGeneralEnquiryDto extends createZodDto(CreateGeneralEnquirySchema) {}
+export class CreateGeneralEnquiryDto extends createZodDto(
+  CreateGeneralEnquirySchema,
+) {}

@@ -33,15 +33,21 @@ export class ServicesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) { return this.servicesService.findOne(id); }
+  findOne(@Param('id') id: string) {
+    return this.servicesService.findOne(id);
+  }
 
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  update(@Param('id') id: string, @Body() dto: any) { return this.servicesService.update(id, dto); }
+  update(@Param('id') id: string, @Body() dto: any) {
+    return this.servicesService.update(id, dto);
+  }
 
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  remove(@Param('id') id: string) { return this.servicesService.remove(id); }
+  remove(@Param('id') id: string) {
+    return this.servicesService.remove(id);
+  }
 }

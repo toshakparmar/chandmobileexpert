@@ -156,8 +156,8 @@ function ShopContent() {
 
         if (isCancelled) return;
 
-        let rawProducts = Array.isArray(productsRes.data) ? productsRes.data : [];
-        let rawCats = Array.isArray(catsRes.data) ? catsRes.data : [];
+        const rawProducts = Array.isArray(productsRes.data) ? productsRes.data : [];
+        const rawCats = Array.isArray(catsRes.data) ? catsRes.data : [];
 
         let mappedProducts: ProductItem[] = rawProducts.map((p: any) => {
           const price = typeof p.price === "string" ? parseFloat(p.price) || 0 : Number(p.price) || 0;

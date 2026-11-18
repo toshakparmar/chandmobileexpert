@@ -33,15 +33,21 @@ export class DevicesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) { return this.devicesService.findOne(id); }
+  findOne(@Param('id') id: string) {
+    return this.devicesService.findOne(id);
+  }
 
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  update(@Param('id') id: string, @Body() dto: any) { return this.devicesService.update(id, dto); }
+  update(@Param('id') id: string, @Body() dto: any) {
+    return this.devicesService.update(id, dto);
+  }
 
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  remove(@Param('id') id: string) { return this.devicesService.remove(id); }
+  remove(@Param('id') id: string) {
+    return this.devicesService.remove(id);
+  }
 }

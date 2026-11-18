@@ -33,7 +33,9 @@ export class CategoriesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) { return this.categoriesService.findOne(id); }
+  findOne(@Param('id') id: string) {
+    return this.categoriesService.findOne(id);
+  }
 
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -48,5 +50,7 @@ export class CategoriesController {
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  remove(@Param('id') id: string) { return this.categoriesService.remove(id); }
+  remove(@Param('id') id: string) {
+    return this.categoriesService.remove(id);
+  }
 }

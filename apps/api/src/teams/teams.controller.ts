@@ -33,15 +33,21 @@ export class TeamsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) { return this.teamsService.findOne(id); }
+  findOne(@Param('id') id: string) {
+    return this.teamsService.findOne(id);
+  }
 
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  update(@Param('id') id: string, @Body() dto: any) { return this.teamsService.update(id, dto); }
+  update(@Param('id') id: string, @Body() dto: any) {
+    return this.teamsService.update(id, dto);
+  }
 
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  remove(@Param('id') id: string) { return this.teamsService.remove(id); }
+  remove(@Param('id') id: string) {
+    return this.teamsService.remove(id);
+  }
 }

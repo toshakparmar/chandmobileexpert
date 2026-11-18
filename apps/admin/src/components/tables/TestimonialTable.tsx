@@ -230,7 +230,7 @@ export default function TestimonialTable() {
 
                   <TableCell className="px-4 py-3 text-start">
                     <p className="text-xs text-gray-600 dark:text-gray-300 max-w-md line-clamp-2" title={t.review}>
-                      "{t.review}"
+                      &ldquo;{t.review}&rdquo;
                     </p>
                   </TableCell>
 

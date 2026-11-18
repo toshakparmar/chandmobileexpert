@@ -28,49 +28,83 @@ export class AppService {
         recentOrders,
         recentRepairQueries,
         orderStatusDistribution,
-        sixMonthOrders
+        sixMonthOrders,
       ] = await Promise.all([
         this.prisma.user.count().catch(() => 0),
         this.prisma.order.count().catch(() => 0),
-        this.prisma.order.aggregate({
-          _sum: { totalAmount: true }
-        }).catch(() => ({ _sum: { totalAmount: 0 } })),
-        this.prisma.repairQuery.count({
-          where: { status: 'PENDING' }
-        }).catch(() => 0),
+        this.prisma.order
+          .aggregate({
+            _sum: { totalAmount: true },
+          })
+          .catch(() => ({ _sum: { totalAmount: 0 } })),
+        this.prisma.repairQuery
+          .count({
+            where: { status: 'PENDING' },
+          })
+          .catch(() => 0),
         this.prisma.repairQuery.count().catch(() => 0),
-        this.prisma.generalEnquiry.count({
-          where: { isResolved: false }
-        }).catch(() => 0),
-        this.prisma.payment.count({
-          where: { status: 'AWAITING_VERIFICATION' }
-        }).catch(() => 0),
+        this.prisma.generalEnquiry
+          .count({
+            where: { isResolved: false },
+          })
+          .catch(() => 0),
+        this.prisma.payment
+          .count({
+            where: { status: 'AWAITING_VERIFICATION' },
+          })
+          .catch(() => 0),
         this.prisma.product.count().catch(() => 0),
-        this.prisma.order.findMany({
-          take: 6,
-          orderBy: { createdAt: 'desc' },
-          include: {
-            user: { select: { email: true, firstName: true, lastName: true } },
-            payment: { select: { status: true, method: true, utr: true } },
-          }
-        }).catch(() => []),
-        this.prisma.repairQuery.findMany({
-          take: 5,
-          orderBy: { createdAt: 'desc' },
-        }).catch(() => []),
-        this.prisma.order.groupBy({
-          by: ['status'],
-          _count: { status: true },
-        }).catch(() => []),
-        this.prisma.order.findMany({
-          where: { createdAt: { gte: sixMonthsAgo } },
-          select: { createdAt: true, totalAmount: true, status: true },
-        }).catch(() => []),
+        this.prisma.order
+          .findMany({
+            take: 6,
+            orderBy: { createdAt: 'desc' },
+            include: {
+              user: {
+                select: { email: true, firstName: true, lastName: true },
+              },
+              payment: { select: { status: true, method: true, utr: true } },
+            },
+          })
+          .catch(() => []),
+        this.prisma.repairQuery
+          .findMany({
+            take: 5,
+            orderBy: { createdAt: 'desc' },
+          })
+          .catch(() => []),
+        this.prisma.order
+          .groupBy({
+            by: ['status'],
+            _count: { status: true },
+          })
+          .catch(() => []),
+        this.prisma.order
+          .findMany({
+            where: { createdAt: { gte: sixMonthsAgo } },
+            select: { createdAt: true, totalAmount: true, status: true },
+          })
+          .catch(() => []),
       ]);
 
       // Calculate monthly aggregations for last 6 months
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const monthlyDataMap: Record<string, { revenue: number; orders: number }> = {};
+      const monthNames = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      const monthlyDataMap: Record<
+        string,
+        { revenue: number; orders: number }
+      > = {};
       const monthsList: string[] = [];
 
       for (let i = 5; i >= 0; i--) {
@@ -138,8 +172,19 @@ export class AppService {
         pendingEnquiries: 0,
         pendingUpiPayments: 0,
         totalProducts: 0,
-        monthlyChart: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'], revenue: [0, 0, 0, 0, 0, 0], orders: [0, 0, 0, 0, 0, 0] },
-        orderStatusDistribution: { PENDING: 0, CONFIRMED: 0, PROCESSING: 0, SHIPPED: 0, DELIVERED: 0, CANCELLED: 0 },
+        monthlyChart: {
+          categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          revenue: [0, 0, 0, 0, 0, 0],
+          orders: [0, 0, 0, 0, 0, 0],
+        },
+        orderStatusDistribution: {
+          PENDING: 0,
+          CONFIRMED: 0,
+          PROCESSING: 0,
+          SHIPPED: 0,
+          DELIVERED: 0,
+          CANCELLED: 0,
+        },
         recentOrders: [],
         recentRepairQueries: [],
       };

@@ -8,7 +8,9 @@ import { Role } from '@prisma/client';
 
 @Controller('business-profile')
 export class BusinessProfileController {
-  constructor(private readonly businessProfileService: BusinessProfileService) {}
+  constructor(
+    private readonly businessProfileService: BusinessProfileService,
+  ) {}
 
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)

@@ -13,7 +13,6 @@ import { Modal } from "../ui/modal";
 import { ConfirmModal } from "../ui/modal/ConfirmModal";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
-import Input from "../form/input/InputField";
 import Pagination from "./Pagination";
 import ComponentLoader from "../common/ComponentLoader";
 import { ActionGroup, ViewAction, EditAction, DeleteAction } from "../common/TableActions";

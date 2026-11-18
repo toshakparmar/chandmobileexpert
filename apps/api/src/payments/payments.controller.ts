@@ -36,9 +36,14 @@ export class PaymentsController {
     @Param('id') paymentId: string,
     @Body('utr') utr: string,
     @Body('screenshotUrl') screenshotUrl?: string,
-    @Req() req?: any
+    @Req() req?: any,
   ) {
-    return this.paymentsService.submitUtr(paymentId, utr, screenshotUrl, req?.user?.id);
+    return this.paymentsService.submitUtr(
+      paymentId,
+      utr,
+      screenshotUrl,
+      req?.user?.id,
+    );
   }
 
   /**
@@ -60,7 +65,7 @@ export class PaymentsController {
   verifyPayment(
     @Param('id') paymentId: string,
     @Req() req: any,
-    @Body('notes') notes?: string
+    @Body('notes') notes?: string,
   ) {
     return this.paymentsService.verifyPayment(req.user.id, paymentId, notes);
   }
@@ -74,9 +79,8 @@ export class PaymentsController {
   rejectPayment(
     @Param('id') paymentId: string,
     @Req() req: any,
-    @Body('reason') reason: string
+    @Body('reason') reason: string,
   ) {
     return this.paymentsService.rejectPayment(req.user.id, paymentId, reason);
   }
 }
-

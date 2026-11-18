@@ -7,7 +7,7 @@ export class UsersService {
 
   async findAll() {
     return this.prisma.user.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -23,7 +23,7 @@ export class UsersService {
 
   async findOne(id: string) {
     return this.prisma.user.findUnique({
-      where: { id }
+      where: { id },
     });
   }
 
@@ -34,13 +34,13 @@ export class UsersService {
     }
     return this.prisma.user.update({
       where: { id },
-      data
+      data,
     });
   }
 
   async remove(id: string) {
     return this.prisma.user.delete({
-      where: { id }
+      where: { id },
     });
   }
 

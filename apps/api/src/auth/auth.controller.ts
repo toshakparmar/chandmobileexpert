@@ -1,4 +1,11 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UsePipes } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  UsePipes,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { createZodDto, ZodValidationPipe } from 'nestjs-zod';
@@ -9,7 +16,9 @@ const LoginSchema = z.object({
 });
 
 const AdminLoginSchema = z.object({
-  phone: z.string().regex(/^(\+91[\s-]?)?[0-9]{10}$/, 'Invalid phone number format'),
+  phone: z
+    .string()
+    .regex(/^(\+91[\s-]?)?[0-9]{10}$/, 'Invalid phone number format'),
   otp: z.string().length(6, 'OTP must be exactly 6 digits'),
 });
 

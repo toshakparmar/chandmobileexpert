@@ -23,10 +23,6 @@ export default function UserInfoCard() {
   const [formData, setFormData] = useState(profile);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
   const fetchProfile = async () => {
     try {
       const { data } = await api.get("/business-profile");
@@ -47,6 +43,10 @@ export default function UserInfoCard() {
     }
   };
 
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
@@ -55,7 +55,8 @@ export default function UserInfoCard() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { linkedinUrl, ...payload } = formData; // Not supported in DB yet, prevents 500 crash
+      const payload: Record<string, unknown> = { ...formData };
+      delete payload.linkedinUrl; // Not supported in DB yet, prevents 500 crash
 
       await api.patch("/business-profile", payload);
       setProfile(formData);

@@ -101,6 +101,7 @@ export default function PaymentTable() {
 
   useEffect(() => {
     fetchPayments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   const handleCopy = (text: string, id: string) => {
@@ -264,7 +265,7 @@ export default function PaymentTable() {
       <div className="p-3.5 rounded-xl bg-brand-50 dark:bg-brand-950/20 border border-brand-200 dark:border-brand-900/40 flex items-center gap-2.5 text-xs text-gray-900 dark:text-gray-200">
         <ShieldCheck className="w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0" />
         <span>
-          <strong>Zero Payment Gateway Fee:</strong> Customer payments go directly to the shop UPI VPA. Cross-verify the customer's 12-digit UTR with your mobile banking app / SMS before clicking <strong>Verify</strong>.
+          <strong>Zero Payment Gateway Fee:</strong> Customer payments go directly to the shop UPI VPA. Cross-verify the customer&apos;s 12-digit UTR with your mobile banking app / SMS before clicking <strong>Verify</strong>.
         </span>
       </div>
 

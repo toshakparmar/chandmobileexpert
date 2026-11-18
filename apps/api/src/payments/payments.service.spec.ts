@@ -72,10 +72,15 @@ describe('PaymentsService', () => {
   describe('getPaymentInstructions', () => {
     it('generates standard NPCI UPI URI with amount and payee', async () => {
       mockPrismaService.order.findUnique.mockResolvedValue(mockOrder);
-      mockPrismaService.businessProfile.findFirst.mockResolvedValue(mockBusinessProfile);
+      mockPrismaService.businessProfile.findFirst.mockResolvedValue(
+        mockBusinessProfile,
+      );
       mockPrismaService.payment.create.mockResolvedValue(mockPayment);
 
-      const instructions = await service.getPaymentInstructions(mockOrder.id, mockOrder.userId);
+      const instructions = await service.getPaymentInstructions(
+        mockOrder.id,
+        mockOrder.userId,
+      );
 
       expect(instructions).toBeDefined();
       expect(instructions.amount).toBe(4999.0);
@@ -89,9 +94,9 @@ describe('PaymentsService', () => {
     it('throws NotFoundException if order does not exist', async () => {
       mockPrismaService.order.findUnique.mockResolvedValue(null);
 
-      await expect(service.getPaymentInstructions('invalid-order')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getPaymentInstructions('invalid-order'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -108,7 +113,11 @@ describe('PaymentsService', () => {
         status: PaymentStatus.AWAITING_VERIFICATION,
       });
 
-      const result = await service.submitUtr(mockPayment.id, '123456789012', mockOrder.userId);
+      const result = await service.submitUtr(
+        mockPayment.id,
+        '123456789012',
+        mockOrder.userId,
+      );
 
       expect(result.status).toBe(PaymentStatus.AWAITING_VERIFICATION);
       expect(result.utr).toBe('123456789012');

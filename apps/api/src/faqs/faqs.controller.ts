@@ -33,15 +33,21 @@ export class FaqsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) { return this.faqsService.findOne(id); }
+  findOne(@Param('id') id: string) {
+    return this.faqsService.findOne(id);
+  }
 
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  update(@Param('id') id: string, @Body() dto: any) { return this.faqsService.update(id, dto); }
+  update(@Param('id') id: string, @Body() dto: any) {
+    return this.faqsService.update(id, dto);
+  }
 
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  remove(@Param('id') id: string) { return this.faqsService.remove(id); }
+  remove(@Param('id') id: string) {
+    return this.faqsService.remove(id);
+  }
 }

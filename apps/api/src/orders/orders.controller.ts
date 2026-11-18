@@ -1,4 +1,17 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, Req, Query, Headers, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  Req,
+  Query,
+  Headers,
+  BadRequestException,
+} from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { AuthGuard } from '@nestjs/passport';
 import { OptionalJwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -32,10 +45,7 @@ export class OrdersController {
 
   // User: Checkout flow (creates order from cart & records in database)
   @Post('checkout')
-  async checkout(
-    @Req() req: any,
-    @Body() dto: CheckoutDto,
-  ) {
+  async checkout(@Req() req: any, @Body() dto: CheckoutDto) {
     const userId = req.user?.id || dto.userId;
     try {
       return await this.ordersService.checkout(userId, dto);

@@ -21,8 +21,13 @@ export class AuthService {
 
       // Allow test token strictly in non-production environments when explicit flag is active
       if (idToken === 'test-admin-token-9999999999') {
-        if (process.env.NODE_ENV === 'production' || process.env.ALLOW_TEST_AUTH !== 'true') {
-          throw new UnauthorizedException('Test authentication is disabled in this environment.');
+        if (
+          process.env.NODE_ENV === 'production' ||
+          process.env.ALLOW_TEST_AUTH !== 'true'
+        ) {
+          throw new UnauthorizedException(
+            'Test authentication is disabled in this environment.',
+          );
         }
         decodedToken = {
           uid: 'test-admin-uid-9999999999',
@@ -35,7 +40,9 @@ export class AuthService {
             .getAuth()
             .verifyIdToken(idToken);
         } catch (error) {
-          throw new UnauthorizedException('Invalid or expired Firebase ID token');
+          throw new UnauthorizedException(
+            'Invalid or expired Firebase ID token',
+          );
         }
       }
 
@@ -100,7 +107,9 @@ export class AuthService {
       }
 
       if (requireAdmin && user.role !== 'SUPER_ADMIN') {
-        throw new UnauthorizedException('Access denied. Administrative privileges required.');
+        throw new UnauthorizedException(
+          'Access denied. Administrative privileges required.',
+        );
       }
 
       // Generate Session JWT
@@ -112,7 +121,9 @@ export class AuthService {
         user,
       };
     } catch (e: any) {
-      throw new BadRequestException(e.message || 'Unknown error occurred in auth service');
+      throw new BadRequestException(
+        e.message || 'Unknown error occurred in auth service',
+      );
     }
   }
 

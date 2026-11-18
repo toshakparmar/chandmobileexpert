@@ -7,22 +7,30 @@ import { PrismaService } from '../prisma/prisma.service';
 export class SubCategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: any) { return this.prisma.subCategory.create({ data: dto }); }
+  async create(dto: any) {
+    return this.prisma.subCategory.create({ data: dto });
+  }
 
   async findAll() {
     return this.prisma.subCategory.findMany({
       include: {
         category: {
-          select: { name: true }
-        }
+          select: { name: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findOne(id: string) { return this.prisma.subCategory.findUnique({ where: { id } }); }
+  async findOne(id: string) {
+    return this.prisma.subCategory.findUnique({ where: { id } });
+  }
 
-  async update(id: string, dto: any) { return this.prisma.subCategory.update({ where: { id }, data: dto }); }
+  async update(id: string, dto: any) {
+    return this.prisma.subCategory.update({ where: { id }, data: dto });
+  }
 
-  async remove(id: string) { return this.prisma.subCategory.delete({ where: { id } }); }
+  async remove(id: string) {
+    return this.prisma.subCategory.delete({ where: { id } });
+  }
 }

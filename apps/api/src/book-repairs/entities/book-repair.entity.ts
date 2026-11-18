@@ -1,1 +1,1 @@
-export class BookRepair { }
+export class BookRepair {}

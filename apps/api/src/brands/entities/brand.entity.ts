@@ -1,1 +1,1 @@
-export class Brand { }
+export class Brand {}

@@ -28,4 +28,3 @@ describe('AuthController', () => {
     expect(controller).toBeDefined();
   });
 });
-

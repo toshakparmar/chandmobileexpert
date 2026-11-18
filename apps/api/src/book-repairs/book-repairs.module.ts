@@ -6,4 +6,4 @@ import { BookRepairsController } from './book-repairs.controller';
   controllers: [BookRepairsController],
   providers: [BookRepairsService],
 })
-export class BookRepairsModule { }
+export class BookRepairsModule {}

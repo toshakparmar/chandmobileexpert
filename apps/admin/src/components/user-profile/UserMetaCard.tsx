@@ -14,10 +14,6 @@ export default function UserMetaCard() {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
   const fetchProfile = async () => {
     try {
       const { data } = await api.get("/business-profile");
@@ -37,6 +33,10 @@ export default function UserMetaCard() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
   return (
     <>

@@ -37,20 +37,21 @@ export class GeneralEnquiriesController {
   @Get(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  findOne(@Param('id') id: string) { return this.generalEnquiriesService.findOne(id); }
+  findOne(@Param('id') id: string) {
+    return this.generalEnquiriesService.findOne(id);
+  }
 
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  update(
-    @Param('id') id: string,
-    @Body() updateGeneralEnquiryDto: any,
-  ) {
+  update(@Param('id') id: string, @Body() updateGeneralEnquiryDto: any) {
     return this.generalEnquiriesService.update(id, updateGeneralEnquiryDto);
   }
 
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  remove(@Param('id') id: string) { return this.generalEnquiriesService.remove(id); }
+  remove(@Param('id') id: string) {
+    return this.generalEnquiriesService.remove(id);
+  }
 }

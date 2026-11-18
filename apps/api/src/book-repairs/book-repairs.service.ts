@@ -24,16 +24,16 @@ export class BookRepairsService {
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { firstName: true, lastName: true, email: true } },
-      }
+      },
     });
   }
 
   async findOne(id: string) {
-    return this.prisma.repairQuery.findUnique({ 
+    return this.prisma.repairQuery.findUnique({
       where: { id },
       include: {
         user: { select: { firstName: true, lastName: true, email: true } },
-      }
+      },
     });
   }
 

@@ -31,14 +31,18 @@ export class BusinessProfileService {
         create: { ...DEFAULT_BUSINESS_PROFILE, ...createDto },
       });
     } catch (error: any) {
-      this.logger.error(`Error in create business profile: ${error?.message || error}`);
+      this.logger.error(
+        `Error in create business profile: ${error?.message || error}`,
+      );
       return { ...DEFAULT_BUSINESS_PROFILE, ...createDto };
     }
   }
 
   async findOne() {
     try {
-      const profile = await this.prisma.businessProfile.findUnique({ where: { id: 1 } });
+      const profile = await this.prisma.businessProfile.findUnique({
+        where: { id: 1 },
+      });
       if (!profile) {
         try {
           return await this.prisma.businessProfile.upsert({
@@ -52,7 +56,9 @@ export class BusinessProfileService {
       }
       return profile;
     } catch (error: any) {
-      this.logger.warn(`Failed to retrieve business profile from DB: ${error?.message || error}. Falling back to default.`);
+      this.logger.warn(
+        `Failed to retrieve business profile from DB: ${error?.message || error}. Falling back to default.`,
+      );
       return DEFAULT_BUSINESS_PROFILE;
     }
   }
@@ -65,7 +71,9 @@ export class BusinessProfileService {
         create: { ...DEFAULT_BUSINESS_PROFILE, ...updateDto },
       });
     } catch (error: any) {
-      this.logger.error(`Error in update business profile: ${error?.message || error}`);
+      this.logger.error(
+        `Error in update business profile: ${error?.message || error}`,
+      );
       return { ...DEFAULT_BUSINESS_PROFILE, ...updateDto };
     }
   }

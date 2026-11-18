@@ -9,15 +9,24 @@ export class OrdersService {
   async findAll() {
     return this.prisma.order.findMany({
       include: {
-        user: { select: { firstName: true, lastName: true, phone: true, email: true } },
+        user: {
+          select: { firstName: true, lastName: true, phone: true, email: true },
+        },
         shippingAddress: true,
         items: {
           include: {
-            product: { select: { name: true, image: true, price: true, discountPrice: true } }
-          }
-        }
+            product: {
+              select: {
+                name: true,
+                image: true,
+                price: true,
+                discountPrice: true,
+              },
+            },
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -25,9 +34,14 @@ export class OrdersService {
     let targetUserId: string | null = null;
 
     if (userId) {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId);
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          userId,
+        );
       if (isUuid) {
-        const userExists = await this.prisma.user.findUnique({ where: { id: userId } });
+        const userExists = await this.prisma.user.findUnique({
+          where: { id: userId },
+        });
         if (userExists) {
           targetUserId = userExists.id;
         }
@@ -37,11 +51,8 @@ export class OrdersService {
     if (!targetUserId && (email || phone)) {
       const user = await this.prisma.user.findFirst({
         where: {
-          OR: [
-            ...(email ? [{ email }] : []),
-            ...(phone ? [{ phone }] : [])
-          ]
-        }
+          OR: [...(email ? [{ email }] : []), ...(phone ? [{ phone }] : [])],
+        },
       });
       if (user) {
         targetUserId = user.id;
@@ -58,11 +69,18 @@ export class OrdersService {
         shippingAddress: true,
         items: {
           include: {
-            product: { select: { name: true, image: true, price: true, discountPrice: true } }
-          }
-        }
+            product: {
+              select: {
+                name: true,
+                image: true,
+                price: true,
+                discountPrice: true,
+              },
+            },
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -71,9 +89,14 @@ export class OrdersService {
     let finalUserId: string | null = null;
 
     if (userId) {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId);
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          userId,
+        );
       if (isUuid) {
-        const userExists = await this.prisma.user.findUnique({ where: { id: userId } });
+        const userExists = await this.prisma.user.findUnique({
+          where: { id: userId },
+        });
         if (userExists) {
           finalUserId = userExists.id;
         }
@@ -85,9 +108,9 @@ export class OrdersService {
         where: {
           OR: [
             ...(dto.userEmail ? [{ email: dto.userEmail }] : []),
-            ...(dto.userPhone ? [{ phone: dto.userPhone }] : [])
-          ]
-        }
+            ...(dto.userPhone ? [{ phone: dto.userPhone }] : []),
+          ],
+        },
       });
 
       if (!existingUser && dto.userEmail) {
@@ -98,7 +121,7 @@ export class OrdersService {
             firstName: dto.userName?.split(' ')[0] || 'Customer',
             lastName: dto.userName?.split(' ').slice(1).join(' ') || '',
             role: 'USER',
-          }
+          },
         });
       }
 
@@ -118,7 +141,7 @@ export class OrdersService {
             firstName: 'Chand',
             lastName: 'Customer',
             role: 'USER',
-          }
+          },
         });
         finalUserId = createdFallback.id;
       }
@@ -129,33 +152,39 @@ export class OrdersService {
       where: { userId: finalUserId },
       include: {
         items: {
-          include: { product: true }
-        }
-      }
+          include: { product: true },
+        },
+      },
     });
 
-    if ((!cart || cart.items.length === 0) && dto.items && dto.items.length > 0) {
+    if (
+      (!cart || cart.items.length === 0) &&
+      dto.items &&
+      dto.items.length > 0
+    ) {
       if (!cart) {
-        cart = await this.prisma.cart.create({
-          data: { userId: finalUserId }
-        }) as any;
+        cart = (await this.prisma.cart.create({
+          data: { userId: finalUserId },
+        })) as any;
       }
       for (const reqItem of dto.items) {
-        const prod = await this.prisma.product.findUnique({ where: { id: reqItem.productId } });
+        const prod = await this.prisma.product.findUnique({
+          where: { id: reqItem.productId },
+        });
         if (prod && prod.isActive) {
           await this.prisma.cartItem.upsert({
             where: {
               cartId_productId: {
                 cartId: cart!.id,
                 productId: reqItem.productId,
-              }
+              },
             },
             update: { quantity: reqItem.quantity },
             create: {
               cartId: cart!.id,
               productId: reqItem.productId,
               quantity: reqItem.quantity,
-            }
+            },
           });
         }
       }
@@ -164,35 +193,47 @@ export class OrdersService {
         where: { userId: finalUserId },
         include: {
           items: {
-            include: { product: true }
-          }
-        }
+            include: { product: true },
+          },
+        },
       });
     }
 
     let totalAmount = 0;
-    const orderItemsData: { productId: string; quantity: number; price: number }[] = [];
+    const orderItemsData: {
+      productId: string;
+      quantity: number;
+      price: number;
+    }[] = [];
 
     if (cart && cart.items.length > 0) {
       for (const item of cart.items) {
-        const price = item.product.discountPrice ? Number(item.product.discountPrice) : Number(item.product.price);
+        const price = item.product.discountPrice
+          ? Number(item.product.discountPrice)
+          : Number(item.product.price);
         totalAmount += price * item.quantity;
         orderItemsData.push({
           productId: item.productId,
           quantity: item.quantity,
-          price: price
+          price: price,
         });
       }
     } else if (dto.items && dto.items.length > 0) {
       for (const reqItem of dto.items) {
-        const prod = await this.prisma.product.findUnique({ where: { id: reqItem.productId } });
-        const price = prod?.discountPrice ? Number(prod.discountPrice) : prod?.price ? Number(prod.price) : 499;
+        const prod = await this.prisma.product.findUnique({
+          where: { id: reqItem.productId },
+        });
+        const price = prod?.discountPrice
+          ? Number(prod.discountPrice)
+          : prod?.price
+            ? Number(prod.price)
+            : 499;
         totalAmount += price * reqItem.quantity;
         if (prod) {
           orderItemsData.push({
             productId: prod.id,
             quantity: reqItem.quantity,
-            price: price
+            price: price,
           });
         }
       }
@@ -200,14 +241,18 @@ export class OrdersService {
 
     // If still no items (e.g. testing with empty cart), attach first active product
     if (orderItemsData.length === 0) {
-      const anyProduct = await this.prisma.product.findFirst({ where: { isActive: true } });
+      const anyProduct = await this.prisma.product.findFirst({
+        where: { isActive: true },
+      });
       if (anyProduct) {
-        const price = anyProduct.discountPrice ? Number(anyProduct.discountPrice) : Number(anyProduct.price);
+        const price = anyProduct.discountPrice
+          ? Number(anyProduct.discountPrice)
+          : Number(anyProduct.price);
         totalAmount = price;
         orderItemsData.push({
           productId: anyProduct.id,
           quantity: 1,
-          price
+          price,
         });
       }
     }
@@ -217,10 +262,13 @@ export class OrdersService {
       let finalShippingAddressId: string | null = null;
 
       if (dto.shippingAddressId) {
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(dto.shippingAddressId);
+        const isUuid =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            dto.shippingAddressId,
+          );
         if (isUuid) {
           const existingAddr = await tx.address.findUnique({
-            where: { id: dto.shippingAddressId }
+            where: { id: dto.shippingAddressId },
           });
           if (existingAddr) {
             finalShippingAddressId = existingAddr.id;
@@ -241,7 +289,7 @@ export class OrdersService {
             state: dto.newShippingAddress.state || 'Uttar Pradesh',
             postalCode: dto.newShippingAddress.postalCode || '244302',
             country: dto.newShippingAddress.country || 'IN',
-          }
+          },
         });
         finalShippingAddressId = addr.id;
       }
@@ -259,13 +307,15 @@ export class OrdersService {
             state: 'Uttar Pradesh',
             postalCode: '244302',
             country: 'IN',
-          }
+          },
         });
         finalShippingAddressId = defaultAddr.id;
       }
 
       const initialStatus =
-        dto.paymentMethod === 'TEST_ORDER_NO_PAYMENT' ? 'PROCESSING' : 'PENDING';
+        dto.paymentMethod === 'TEST_ORDER_NO_PAYMENT'
+          ? 'PROCESSING'
+          : 'PENDING';
 
       const order = await tx.order.create({
         data: {
@@ -276,17 +326,24 @@ export class OrdersService {
           shippingAddressId: finalShippingAddressId,
           billingAddressId: dto.billingAddressId || finalShippingAddressId,
           items: {
-            create: orderItemsData
-          }
+            create: orderItemsData,
+          },
         },
         include: {
           shippingAddress: true,
           items: {
             include: {
-              product: { select: { name: true, image: true, price: true, discountPrice: true } }
-            }
-          }
-        }
+              product: {
+                select: {
+                  name: true,
+                  image: true,
+                  price: true,
+                  discountPrice: true,
+                },
+              },
+            },
+          },
+        },
       });
 
       for (const item of orderItemsData) {
@@ -294,15 +351,17 @@ export class OrdersService {
           await tx.product.update({
             where: { id: item.productId },
             data: {
-              stockCount: { decrement: item.quantity }
-            }
+              stockCount: { decrement: item.quantity },
+            },
           });
-        } catch (e) {}
+        } catch (_e) {
+          // ignore error if product stock decrement fails
+        }
       }
 
       if (cart) {
         await tx.cartItem.deleteMany({
-          where: { cartId: cart.id }
+          where: { cartId: cart.id },
         });
       }
 
@@ -313,13 +372,13 @@ export class OrdersService {
   async update(id: string, data: any) {
     return this.prisma.order.update({
       where: { id },
-      data: { status: data.status }
+      data: { status: data.status },
     });
   }
 
   async remove(id: string) {
     return this.prisma.order.delete({
-      where: { id }
+      where: { id },
     });
   }
 }

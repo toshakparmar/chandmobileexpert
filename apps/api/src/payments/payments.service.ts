@@ -29,7 +29,9 @@ export class PaymentsService {
     }
 
     if (userId && order.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this order payment');
+      throw new ForbiddenException(
+        'You do not have access to this order payment',
+      );
     }
 
     if (order.status === OrderStatus.CANCELLED) {
@@ -65,14 +67,15 @@ export class PaymentsService {
     let payment = order.payment;
     const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
     const amountStr = Number(order.totalAmount).toFixed(2);
-    const orderRef = order.orderNumber || `CME-${order.id.substring(0, 8).toUpperCase()}`;
+    const orderRef =
+      order.orderNumber || `CME-${order.id.substring(0, 8).toUpperCase()}`;
     const paymentRef = `TR-${orderRef}-${Date.now().toString(36).toUpperCase()}`;
 
     // Standard NPCI UPI URI Specification
     const upiUri = `upi://pay?pa=${encodeURIComponent(upiVpa)}&pn=${encodeURIComponent(
-      upiPayeeName
+      upiPayeeName,
     )}&am=${amountStr}&cu=INR&tn=${encodeURIComponent(
-      `Payment for ${orderRef}`
+      `Payment for ${orderRef}`,
     )}&tr=${encodeURIComponent(paymentRef)}`;
 
     // Generate high-resolution QR data URL
@@ -126,11 +129,18 @@ export class PaymentsService {
   /**
    * Customer submits 12-digit UTR transaction reference
    */
-  async submitUtr(paymentId: string, utr: string, screenshotUrl?: string, userId?: string) {
+  async submitUtr(
+    paymentId: string,
+    utr: string,
+    screenshotUrl?: string,
+    userId?: string,
+  ) {
     const cleanUtr = utr.trim().toUpperCase();
 
     if (!/^[0-9A-Z]{12}$/.test(cleanUtr)) {
-      throw new BadRequestException('UTR must be exactly 12 alphanumeric characters');
+      throw new BadRequestException(
+        'UTR must be exactly 12 alphanumeric characters',
+      );
     }
 
     const payment = await this.prisma.payment.findUnique({
@@ -147,7 +157,9 @@ export class PaymentsService {
     }
 
     if (payment.status === PaymentStatus.PAID) {
-      throw new BadRequestException('This payment has already been verified and marked as PAID');
+      throw new BadRequestException(
+        'This payment has already been verified and marked as PAID',
+      );
     }
 
     // Check UTR duplicate across other completed or submitted payments
@@ -155,13 +167,15 @@ export class PaymentsService {
       where: {
         utr: cleanUtr,
         id: { not: paymentId },
-        status: { in: [PaymentStatus.PAID, PaymentStatus.AWAITING_VERIFICATION] },
+        status: {
+          in: [PaymentStatus.PAID, PaymentStatus.AWAITING_VERIFICATION],
+        },
       },
     });
 
     if (duplicate) {
       throw new ConflictException(
-        'This UTR number has already been submitted for another order. Please check your bank statement.'
+        'This UTR number has already been submitted for another order. Please check your bank statement.',
       );
     }
 
@@ -189,7 +203,14 @@ export class PaymentsService {
       include: {
         order: {
           include: {
-            user: { select: { firstName: true, lastName: true, phone: true, email: true } },
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                phone: true,
+                email: true,
+              },
+            },
             shippingAddress: true,
           },
         },
@@ -239,7 +260,9 @@ export class PaymentsService {
    */
   async rejectPayment(adminId: string, paymentId: string, reason: string) {
     if (!reason || reason.trim().length < 3) {
-      throw new BadRequestException('A descriptive rejection reason is required');
+      throw new BadRequestException(
+        'A descriptive rejection reason is required',
+      );
     }
 
     const payment = await this.prisma.payment.findUnique({
@@ -260,4 +283,3 @@ export class PaymentsService {
     });
   }
 }
-

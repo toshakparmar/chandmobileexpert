@@ -55,10 +55,7 @@ export class BookRepairsController {
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.SUPER_ADMIN)
-  update(
-    @Param('id') id: string,
-    @Body() updateDto: any,
-  ) {
+  update(@Param('id') id: string, @Body() updateDto: any) {
     return this.bookRepairsService.update(id, updateDto);
   }
 

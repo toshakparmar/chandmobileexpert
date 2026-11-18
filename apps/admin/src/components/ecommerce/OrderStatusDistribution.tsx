@@ -30,6 +30,7 @@ export default function OrderStatusDistribution({ distribution }: OrderStatusDis
   const labels = ["Delivered", "In Transit / Processing", "Confirmed", "Pending", "Cancelled"];
 
   const options: ApexOptions = {
+    labels,
     colors: ["#047857", "#0ea5e9", "#f59e0b", "#fb923c", "#ef4444"],
     chart: {
       fontFamily: "Outfit, sans-serif",
