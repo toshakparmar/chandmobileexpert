@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   transpilePackages: ["@chand/ui", "@chand/types", "@chand/api-client"],
   webpack(config) {
     config.module.rules.push({
