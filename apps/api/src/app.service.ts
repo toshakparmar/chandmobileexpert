@@ -1,12 +1,62 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 
 @Injectable()
-export class AppService {
+export class AppService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(AppService.name);
+  private keepAliveTimer?: NodeJS.Timeout;
+
   constructor(private readonly prisma: PrismaService) {}
 
+  onModuleInit() {
+    // Touch database every 9 minutes to keep connection pool warm and prevent Supabase 7-day inactivity pause
+    this.keepAliveTimer = setInterval(async () => {
+      try {
+        await this.prisma.$queryRaw`SELECT 1`;
+        this.logger.debug('Database connection touched successfully (internal keep-alive)');
+      } catch (err: any) {
+        this.logger.warn(`Keep-alive DB touch encountered an issue: ${err?.message || err}`);
+      }
+    }, 9 * 60 * 1000);
+  }
+
+  onModuleDestroy() {
+    if (this.keepAliveTimer) {
+      clearInterval(this.keepAliveTimer);
+    }
+  }
+
   getHello(): string {
-    return 'Hello World!';
+    return 'Chand Mobile Expert API is running!';
+  }
+
+  async getHealth() {
+    const startTime = Date.now();
+    let dbStatus = 'disconnected';
+    let dbLatencyMs = 0;
+
+    try {
+      // Execute a lightweight query to touch Supabase and keep it active
+      await this.prisma.$queryRaw`SELECT 1`;
+      dbStatus = 'connected';
+      dbLatencyMs = Date.now() - startTime;
+    } catch (err: any) {
+      dbStatus = `error: ${err?.message || 'Database ping failed'}`;
+    }
+
+    return {
+      status: 'ok',
+      service: 'chand-mobile-expert-api',
+      environment: process.env.NODE_ENV || 'production',
+      server: 'live',
+      uptimeSeconds: Math.floor(process.uptime()),
+      timestamp: new Date().toISOString(),
+      database: {
+        provider: 'postgresql/supabase',
+        status: dbStatus,
+        latencyMs: dbLatencyMs,
+      },
+    };
   }
 
   async getAnalytics() {

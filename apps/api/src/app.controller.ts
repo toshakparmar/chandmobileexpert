@@ -14,6 +14,16 @@ export class AppController {
     return this.appService.getHello();
   }
 
+  @Get('health')
+  async getHealth() {
+    return this.appService.getHealth();
+  }
+
+  @Get('ping')
+  async getPing() {
+    return this.appService.getHealth();
+  }
+
   @Get('analytics')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.SUPER_ADMIN)

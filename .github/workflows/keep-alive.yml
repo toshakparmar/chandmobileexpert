@@ -1,0 +1,41 @@
+name: Keep Alive Cron
+
+on:
+  schedule:
+    # Run every 10 minutes to prevent Render free-tier spin-down (15m timeout)
+    # and Supabase database inactivity auto-pause (7-day timeout)
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  ping:
+    name: Ping Render API & Supabase DB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping Backend Health & Touch Supabase DB
+        run: |
+          TARGET_URL="${{ secrets.RENDER_BACKEND_URL || vars.RENDER_BACKEND_URL }}"
+          if [ -z "$TARGET_URL" ]; then
+            echo "::warning ::RENDER_BACKEND_URL is not set yet in GitHub Secrets/Variables. Set RENDER_BACKEND_URL to your Render API URL (e.g., https://your-app.onrender.com) in repo Settings -> Secrets/Variables -> Actions."
+            exit 0
+          fi
+
+          # Ensure URL has protocol
+          if [[ ! "$TARGET_URL" =~ ^https?:// ]]; then
+            TARGET_URL="https://$TARGET_URL"
+          fi
+
+          HEALTH_URL="${TARGET_URL%/}/health"
+          echo "Pinging: $HEALTH_URL at $(date -u)"
+
+          RESPONSE=$(curl -fsSL --max-time 60 "$HEALTH_URL" || true)
+
+          if [ -n "$RESPONSE" ]; then
+            echo "Response: $RESPONSE"
+            echo "Successfully kept Render backend and Supabase database active!"
+          else
+            echo "::error ::Failed to reach $HEALTH_URL within timeout."
+            exit 1
+          fi
+
