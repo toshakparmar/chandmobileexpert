@@ -133,10 +133,12 @@ export class AuthService {
     if (!user && phone === '9999999999') {
       user = await this.prisma.user.create({
         data: {
-          name: 'Super Admin',
+          firstName: 'Super',
+          lastName: 'Admin',
           phone: '9999999999',
           role: 'SUPER_ADMIN',
           isActive: true,
+          isPhoneVerified: true,
         },
       });
     }
