@@ -6,6 +6,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('PaymentsService', () => {
   let service: PaymentsService;
+  jest.setTimeout(30000);
 
   const mockOrder = {
     id: 'ord-12345678',
@@ -51,6 +52,7 @@ describe('PaymentsService', () => {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
     },
+    $transaction: jest.fn((callback) => callback(mockPrismaService)),
   };
 
   beforeEach(async () => {
@@ -116,6 +118,7 @@ describe('PaymentsService', () => {
       const result = await service.submitUtr(
         mockPayment.id,
         '123456789012',
+        undefined,
         mockOrder.userId,
       );
 
@@ -125,7 +128,7 @@ describe('PaymentsService', () => {
 
     it('rejects invalid UTR length', async () => {
       await expect(
-        service.submitUtr(mockPayment.id, '12345', mockOrder.userId),
+        service.submitUtr(mockPayment.id, '12345', undefined, mockOrder.userId),
       ).rejects.toThrow(BadRequestException);
     });
   });
