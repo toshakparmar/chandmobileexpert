@@ -13,6 +13,7 @@ export class OrdersService {
           select: { firstName: true, lastName: true, phone: true, email: true },
         },
         shippingAddress: true,
+        payment: true,
         items: {
           include: {
             product: {
@@ -67,6 +68,7 @@ export class OrdersService {
       where: { userId: targetUserId },
       include: {
         shippingAddress: true,
+        payment: true,
         items: {
           include: {
             product: {
@@ -312,25 +314,34 @@ export class OrdersService {
         finalShippingAddressId = defaultAddr.id;
       }
 
-      const initialStatus =
-        dto.paymentMethod === 'TEST_ORDER_NO_PAYMENT'
-          ? 'PROCESSING'
-          : 'PENDING';
+      const rawMethod = (dto.paymentMethod || 'COD').toUpperCase();
+      const finalPaymentMethod = rawMethod === 'UPI' ? 'UPI' : 'COD';
+      const orderNumber = `CME-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
 
       const order = await tx.order.create({
         data: {
+          orderNumber,
           userId: finalUserId,
-          status: initialStatus as any,
+          status: 'PENDING',
+          paymentStatus: 'AWAITING_PAYMENT',
           totalAmount: totalAmount || 1499,
-          paymentMethod: dto.paymentMethod || 'COD',
+          paymentMethod: finalPaymentMethod,
           shippingAddressId: finalShippingAddressId,
           billingAddressId: dto.billingAddressId || finalShippingAddressId,
+          payment: {
+            create: {
+              method: finalPaymentMethod,
+              amount: totalAmount || 1499,
+              status: 'AWAITING_PAYMENT',
+            },
+          },
           items: {
             create: orderItemsData,
           },
         },
         include: {
           shippingAddress: true,
+          payment: true,
           items: {
             include: {
               product: {

@@ -25,7 +25,16 @@ interface Order {
   items?: { quantity: number; product: { name: string; basePrice: number } }[];
   totalAmount: number;
   status: string;
+  paymentMethod?: string;
   paymentStatus?: string;
+  payment?: {
+    id: string;
+    method: string;
+    status: string;
+    utr?: string;
+    submittedAt?: string;
+    rejectionReason?: string;
+  };
   createdAt: string;
 }
 
@@ -214,6 +223,7 @@ export default function OrderTable() {
                   <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Order ID</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Customer</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Total Amount</TableCell>
+                  <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Payment</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Items</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Status</TableCell>
                   <TableCell isHeader className="px-5 py-3 font-semibold text-gray-500 text-start text-theme-xs">Created At</TableCell>
@@ -225,6 +235,9 @@ export default function OrderTable() {
                   const customerName = order.user?.firstName
                     ? `${order.user.firstName} ${order.user.lastName || ""}`.trim()
                     : (order.user?.name || `Customer #${order.userId.slice(0, 8)}`);
+
+                  const payMethod = order.payment?.method || order.paymentMethod || "COD";
+                  const payStatus = order.payment?.status || order.paymentStatus || "AWAITING_PAYMENT";
 
                   return (
                     <TableRow key={order.id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition">
@@ -245,6 +258,27 @@ export default function OrderTable() {
                       </TableCell>
                       <TableCell className="px-4 py-3.5 font-bold text-gray-900 text-start text-theme-sm dark:text-white">
                         ₹{Number(order.totalAmount || 0).toLocaleString("en-IN")}
+                      </TableCell>
+                      <TableCell className="px-4 py-3.5 text-start text-theme-sm">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-semibold text-xs text-gray-800 dark:text-gray-200">
+                            {payMethod}
+                          </span>
+                          {payStatus === "PAID" ? (
+                            <Badge size="sm" color="success">Paid</Badge>
+                          ) : payStatus === "AWAITING_VERIFICATION" ? (
+                            <Badge size="sm" color="primary">Verify UTR</Badge>
+                          ) : payStatus === "REJECTED" ? (
+                            <Badge size="sm" color="error">Rejected</Badge>
+                          ) : (
+                            <Badge size="sm" color="warning">Unpaid</Badge>
+                          )}
+                          {order.payment?.utr && (
+                            <span className="text-[10px] font-mono text-gray-400">
+                              UTR: {order.payment.utr}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="px-4 py-3.5 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         {order.items?.length || 0} items
@@ -380,6 +414,82 @@ export default function OrderTable() {
                 <span className="font-semibold text-gray-500">Status</span>
                 <Badge size="sm" color="primary">{selectedOrder.status}</Badge>
               </div>
+              <div className="flex justify-between border-b border-gray-100 dark:border-white/5 pb-2">
+                <span className="font-semibold text-gray-500">Payment Method</span>
+                <span className="font-bold text-gray-900 dark:text-white uppercase">
+                  {selectedOrder.payment?.method || selectedOrder.paymentMethod || "COD"}
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-gray-100 dark:border-white/5 pb-2 items-center">
+                <span className="font-semibold text-gray-500">Payment Status</span>
+                <div>
+                  {(selectedOrder.payment?.status || selectedOrder.paymentStatus) === "PAID" ? (
+                    <Badge size="sm" color="success">Paid</Badge>
+                  ) : (selectedOrder.payment?.status || selectedOrder.paymentStatus) === "AWAITING_VERIFICATION" ? (
+                    <Badge size="sm" color="primary">Awaiting Verification</Badge>
+                  ) : (selectedOrder.payment?.status || selectedOrder.paymentStatus) === "REJECTED" ? (
+                    <Badge size="sm" color="error">Rejected</Badge>
+                  ) : (
+                    <Badge size="sm" color="warning">Unpaid (Awaiting Payment)</Badge>
+                  )}
+                </div>
+              </div>
+              {selectedOrder.payment?.utr && (
+                <div className="flex justify-between border-b border-gray-100 dark:border-white/5 pb-2 items-center bg-blue-50/50 dark:bg-blue-950/20 p-2 rounded-lg">
+                  <span className="font-semibold text-blue-700 dark:text-blue-400">Submitted UTR</span>
+                  <span className="font-mono font-bold text-blue-900 dark:text-blue-200">
+                    {selectedOrder.payment.utr}
+                  </span>
+                </div>
+              )}
+              {selectedOrder.payment?.rejectionReason && (
+                <div className="border-b border-gray-100 dark:border-white/5 pb-2 text-rose-500 text-xs">
+                  <span className="font-semibold">Rejection Reason:</span> {selectedOrder.payment.rejectionReason}
+                </div>
+              )}
+              {selectedOrder.payment && selectedOrder.payment.status === "AWAITING_VERIFICATION" && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl space-y-2">
+                  <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                    UPI Payment requires owner verification against bank statement.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!selectedOrder.payment?.id) return;
+                        try {
+                          await api.post(`/payments/${selectedOrder.payment.id}/verify`, { notes: "Verified in bank" });
+                          await fetchOrders();
+                          closeModal();
+                        } catch (e: any) {
+                          alert(e?.response?.data?.message || "Failed to verify");
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
+                    >
+                      ✓ Approve Payment
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!selectedOrder.payment?.id) return;
+                        const reason = prompt("Enter rejection reason for customer:") || "";
+                        if (!reason.trim()) return;
+                        try {
+                          await api.post(`/payments/${selectedOrder.payment.id}/reject`, { reason });
+                          await fetchOrders();
+                          closeModal();
+                        } catch (e: any) {
+                          alert(e?.response?.data?.message || "Failed to reject");
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
+                    >
+                      ✕ Reject Payment
+                    </button>
+                  </div>
+                </div>
+              )}
               {selectedOrder.items && selectedOrder.items.length > 0 && (
                 <div className="pt-2">
                   <span className="font-semibold text-gray-500 block mb-1">Purchased Items:</span>

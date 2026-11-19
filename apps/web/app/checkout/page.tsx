@@ -180,7 +180,7 @@ export default function CheckoutPage() {
         str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str) : false;
 
       const payload: any = {
-        paymentMethod: paymentMethod === "test" ? "TEST_ORDER_NO_PAYMENT" : paymentMethod,
+        paymentMethod: paymentMethod.toUpperCase(),
         userId: isValidUuid(user?.id) ? user?.id : undefined,
         userEmail: user?.email || "customer@chandmobile.in",
         userName: [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Customer",
@@ -249,26 +249,11 @@ export default function CheckoutPage() {
         }
       }
 
-      // Non-UPI or immediate completion
+      // Non-UPI (COD) immediate completion
       cart.clearCart();
       setStep(3);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
-      if (paymentMethod === "test") {
-        const demoOrderId = `TEST-${Date.now().toString().slice(-8)}`;
-        setPlacedOrder({
-          id: demoOrderId,
-          status: "CONFIRMED",
-          totalAmount: total,
-          createdAt: new Date().toISOString(),
-          paymentMethod: "TEST_ORDER_NO_PAYMENT",
-        });
-        cart.clearCart();
-        setStep(3);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-
       const msg =
         err?.response?.data?.message ||
         "Failed to place order. Please check your connectivity or try again.";
@@ -306,7 +291,6 @@ export default function CheckoutPage() {
         paymentMethod={paymentMethod}
         shippingSummary={finalShippingSummary}
         items={orderedItemsSnapshot}
-        isTestOrder={paymentMethod === "test"}
         paymentStatus={livePaymentData?.status || placedOrder?.paymentStatus}
         utrSubmitted={utrSubmitted}
       />
@@ -471,13 +455,15 @@ export default function CheckoutPage() {
               currentStep={step}
               isSubmitting={isSubmitting}
               onProceed={step === 1 ? handleProceedToPayment : handlePlaceOrder}
-              disabled={step === 1 ? !canProceedToStep2 : false}
+              disabled={step === 1 ? !canProceedToStep2 : !!livePaymentData}
               ctaText={
                 step === 1
                   ? "Proceed to Payment"
                   : livePaymentData
-                  ? "Awaiting UTR Submission"
-                  : "Generate Dynamic UPI QR & Place Order"
+                  ? "Submit 12-Digit UTR to Confirm"
+                  : paymentMethod === "cod"
+                  ? "Confirm Cash on Delivery Order"
+                  : "Generate UPI QR & Pay"
               }
             />
           </div>

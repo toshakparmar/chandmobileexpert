@@ -179,18 +179,29 @@ export class PaymentsService {
       );
     }
 
-    return this.prisma.payment.update({
-      where: { id: paymentId },
-      data: {
-        utr: cleanUtr,
-        screenshotUrl: screenshotUrl || payment.screenshotUrl,
-        status: PaymentStatus.AWAITING_VERIFICATION,
-        submittedAt: new Date(),
-        rejectionReason: null,
-      },
-      include: {
-        order: true,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const updatedPayment = await tx.payment.update({
+        where: { id: paymentId },
+        data: {
+          utr: cleanUtr,
+          screenshotUrl: screenshotUrl || payment.screenshotUrl,
+          status: PaymentStatus.AWAITING_VERIFICATION,
+          submittedAt: new Date(),
+          rejectionReason: null,
+        },
+        include: {
+          order: true,
+        },
+      });
+
+      await tx.order.update({
+        where: { id: payment.orderId },
+        data: {
+          paymentStatus: PaymentStatus.AWAITING_VERIFICATION,
+        },
+      });
+
+      return updatedPayment;
     });
   }
 
@@ -273,13 +284,24 @@ export class PaymentsService {
       throw new NotFoundException('Payment record not found');
     }
 
-    return this.prisma.payment.update({
-      where: { id: paymentId },
-      data: {
-        status: PaymentStatus.REJECTED,
-        rejectionReason: reason,
-        verifiedById: adminId,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const updatedPayment = await tx.payment.update({
+        where: { id: paymentId },
+        data: {
+          status: PaymentStatus.REJECTED,
+          rejectionReason: reason,
+          verifiedById: adminId,
+        },
+      });
+
+      await tx.order.update({
+        where: { id: payment.orderId },
+        data: {
+          paymentStatus: PaymentStatus.REJECTED,
+        },
+      });
+
+      return updatedPayment;
     });
   }
 }

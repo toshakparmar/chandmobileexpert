@@ -8,9 +8,7 @@ import {
   Package,
   Store,
   MessageCircle,
-  Zap,
   Clock,
-  ShieldCheck,
 } from "lucide-react";
 import { CartItem } from "@/store/cartStore";
 import { waLink } from "@/config/business";
@@ -21,7 +19,6 @@ interface OrderSuccessViewProps {
   paymentMethod: string;
   shippingSummary: string;
   items: CartItem[];
-  isTestOrder?: boolean;
   paymentStatus?: string;
   utrSubmitted?: boolean;
 }
@@ -32,12 +29,12 @@ export function OrderSuccessView({
   paymentMethod,
   shippingSummary,
   items,
-  isTestOrder = false,
   paymentStatus,
   utrSubmitted = false,
 }: OrderSuccessViewProps) {
   const isAwaitingVerification =
     paymentStatus === "AWAITING_VERIFICATION" || utrSubmitted;
+  const isCod = paymentMethod?.toUpperCase() === "COD";
 
   return (
     <div className="min-h-screen bg-background relative pt-6 sm:pt-8 pb-20 overflow-x-hidden">
@@ -95,22 +92,25 @@ export function OrderSuccessView({
                   UPI Verification in Progress
                 </span>
               )}
-              {isTestOrder && (
+              {isCod && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300">
-                  <Zap className="w-3 h-3" />
-                  Test Order (Sandbox)
+                  Cash on Delivery (Pay at Doorstep)
                 </span>
               )}
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-              Thank You for Your Order!
+              {isAwaitingVerification
+                ? "Payment Submitted for Verification!"
+                : isCod
+                ? "Cash on Delivery Order Confirmed!"
+                : "Thank You for Your Order!"}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-2 max-w-lg mx-auto leading-relaxed">
               {isAwaitingVerification
-                ? "Your 12-digit UPI reference (UTR) has been received. Our shop owner will verify the payment against our bank records and dispatch your package shortly."
-                : isTestOrder
-                ? "Your order was completed in Test / Sandbox mode without any payment. You can verify order recording and tracking status below."
+                ? "Your 12-digit UPI reference (UTR) has been received. Our shop owner will cross-verify the payment against our bank statement and dispatch your package shortly."
+                : isCod
+                ? `Your order has been placed. Please keep ₹${total.toLocaleString("en-IN")} ready in cash or UPI when our courier arrives at your doorstep.`
                 : "We have received your order and our dispatch team has begun preparing your genuine parts & accessories for doorstep delivery."}
             </p>
 
@@ -124,7 +124,7 @@ export function OrderSuccessView({
               <span>
                 Payment:{" "}
                 <strong className="text-foreground uppercase">
-                  {isTestOrder ? "TEST (NO PAYMENT)" : paymentMethod}
+                  {isCod ? "Cash on Delivery (COD)" : "UPI / Dynamic QR"}
                 </strong>
               </span>
             </div>
@@ -172,10 +172,8 @@ export function OrderSuccessView({
                   Total Amount: <span className="font-extrabold text-sm">₹{total.toLocaleString("en-IN")}</span>
                 </p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {isTestOrder
-                    ? "Zero payment charged • Verified Sandbox Test Order"
-                    : paymentMethod === "cod"
-                    ? "Pay in cash or UPI upon delivery"
+                  {isCod
+                    ? "Pay in cash or UPI upon delivery at doorstep"
                     : isAwaitingVerification
                     ? "UPI verification in progress (UTR submitted)"
                     : "Prepaid online via UPI dynamic QR"}

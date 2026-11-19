@@ -1,12 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
 import {
   Wallet,
   Banknote,
-  CreditCard,
-  Zap,
   ShieldCheck,
   QrCode,
   Copy,
@@ -18,7 +15,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-export type PaymentMethod = "upi" | "cod" | "card" | "test";
+export type PaymentMethod = "upi" | "cod";
 
 interface PaymentSelectionStepProps {
   selectedMethod: PaymentMethod;
@@ -94,105 +91,61 @@ export function PaymentSelectionStep({
 
   return (
     <div className="space-y-6">
-      {/* Payment Methods Options */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+      {/* Payment Methods Options: Only UPI / Dynamic QR and Cash on Delivery (COD) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* UPI Option */}
         <div
           onClick={() => onSelectMethod("upi")}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer relative ${
+          className={`p-5 rounded-2xl border transition-all cursor-pointer relative ${
             selectedMethod === "upi"
-              ? "border-accent bg-accent/5 dark:bg-accent/[0.06] shadow-2xs ring-1 ring-accent"
+              ? "border-accent bg-accent/5 dark:bg-accent/[0.08] shadow-sm ring-2 ring-accent/60"
               : "border-border/70 dark:border-white/10 bg-foreground/[0.015] dark:bg-white/[0.02] hover:border-foreground/30 dark:hover:border-white/20"
           }`}
         >
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-accent/15 text-slate-900 dark:text-accent flex items-center justify-center font-bold text-xs">
-                <Wallet className="w-4 h-4 text-accent" />
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-accent/15 text-slate-900 dark:text-accent flex items-center justify-center font-bold text-xs shrink-0">
+                <Wallet className="w-5 h-5 text-accent" />
               </div>
-              <span className="text-xs font-bold text-foreground">UPI Dynamic QR</span>
+              <div>
+                <span className="text-sm font-bold text-foreground block">UPI / QR Code</span>
+                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">Zero Surcharge • Fast Approval</span>
+              </div>
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent text-slate-950">
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-accent text-slate-950 uppercase tracking-wider">
               Recommended
             </span>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Scan & pay instantly with GPay, PhonePe, Paytm, or BHIM. Zero payment gateway markup.
+          <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+            Scan dynamic QR directly from Google Pay, PhonePe, Paytm, or BHIM. After paying, submit your 12-digit UTR for verified order confirmation.
           </p>
         </div>
 
         {/* Cash on Delivery */}
         <div
           onClick={() => onSelectMethod("cod")}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer relative ${
+          className={`p-5 rounded-2xl border transition-all cursor-pointer relative ${
             selectedMethod === "cod"
-              ? "border-accent bg-accent/5 dark:bg-accent/[0.06] shadow-2xs ring-1 ring-accent"
+              ? "border-accent bg-accent/5 dark:bg-accent/[0.08] shadow-sm ring-2 ring-accent/60"
               : "border-border/70 dark:border-white/10 bg-foreground/[0.015] dark:bg-white/[0.02] hover:border-foreground/30 dark:hover:border-white/20"
           }`}
         >
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-foreground/10 text-foreground flex items-center justify-center font-bold text-xs">
-                <Banknote className="w-4 h-4" />
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-foreground/10 text-foreground flex items-center justify-center font-bold text-xs shrink-0">
+                <Banknote className="w-5 h-5" />
               </div>
-              <span className="text-xs font-bold text-foreground">Cash on Delivery</span>
+              <div>
+                <span className="text-sm font-bold text-foreground block">Cash on Delivery (COD)</span>
+                <span className="text-[11px] text-muted-foreground font-medium">Pay at Doorstep</span>
+              </div>
             </div>
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-foreground/5 text-muted-foreground">
               Doorstep
             </span>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Pay cash or UPI directly to our delivery courier upon receiving your package in Sambhal.
-          </p>
-        </div>
-
-        {/* Credit / Debit Card (Offline / Gateway prep) */}
-        <div
-          onClick={() => onSelectMethod("card")}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer relative ${
-            selectedMethod === "card"
-              ? "border-accent bg-accent/5 dark:bg-accent/[0.06] shadow-2xs ring-1 ring-accent"
-              : "border-border/70 dark:border-white/10 bg-foreground/[0.015] dark:bg-white/[0.02] hover:border-foreground/30 dark:hover:border-white/20"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold text-xs">
-                <CreditCard className="w-4 h-4" />
-              </div>
-              <span className="text-xs font-bold text-foreground">Debit / Credit Card</span>
-            </div>
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-foreground/5 text-muted-foreground">
-              POS Machine
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Card swipe on delivery or at our Sarai Tarin store counter.
-          </p>
-        </div>
-
-        {/* Test Order Sandbox */}
-        <div
-          onClick={() => onSelectMethod("test")}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer relative ${
-            selectedMethod === "test"
-              ? "border-amber-500 bg-amber-500/10 shadow-2xs ring-1 ring-amber-500"
-              : "border-border/70 dark:border-white/10 bg-foreground/[0.015] dark:bg-white/[0.02] hover:border-foreground/30 dark:hover:border-white/20"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-xs">
-                <Zap className="w-4 h-4" />
-              </div>
-              <span className="text-xs font-bold text-foreground">1-Click Test Order</span>
-            </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300">
-              Sandbox
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Simulate instant checkout without payment verification to test order routing.
+          <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+            Pay cash or scan courier UPI QR when your package is delivered to your doorstep in Sambhal & surrounding areas.
           </p>
         </div>
       </div>

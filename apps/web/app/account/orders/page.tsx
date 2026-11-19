@@ -51,9 +51,13 @@ interface OrderRecord {
   id: string;
   orderNumber: string;
   createdAt: string;
-  status: "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
-  totalAmount: number;
+  status: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  paymentStatus?: "AWAITING_PAYMENT" | "AWAITING_VERIFICATION" | "PAID" | "REJECTED" | "EXPIRED" | "REFUNDED";
   paymentMethod: string;
+  totalAmount: number;
+  utr?: string;
+  rejectionReason?: string;
+  paymentId?: string;
   items: OrderItem[];
   shippingAddress: string;
 }
@@ -143,18 +147,19 @@ export default function OrdersPage() {
         if (isSubscribed && res.data && Array.isArray(res.data)) {
           const mapped: OrderRecord[] = res.data.map((o: any) => ({
             id: o.id,
-            orderNumber: `CME-${o.id.substring(0, 6).toUpperCase()}`,
+            orderNumber: o.orderNumber || `CME-${o.id.substring(0, 6).toUpperCase()}`,
             createdAt: new Date(o.createdAt).toLocaleDateString("en-IN", {
               day: "numeric",
               month: "short",
               year: "numeric",
             }),
-            status: o.status || "CONFIRMED",
+            status: o.status || "PENDING",
+            paymentStatus: o.payment?.status || o.paymentStatus || "AWAITING_PAYMENT",
+            paymentMethod: o.paymentMethod || "COD",
             totalAmount: Number(o.totalAmount || 0),
-            paymentMethod:
-              o.paymentMethod === "TEST_ORDER_NO_PAYMENT"
-                ? "Test Order (No Payment)"
-                : o.paymentMethod || "Online Payment",
+            utr: o.payment?.utr || undefined,
+            rejectionReason: o.payment?.rejectionReason || undefined,
+            paymentId: o.payment?.id || undefined,
             shippingAddress: o.shippingAddress
               ? `${o.shippingAddress.name ? o.shippingAddress.name + " • " : ""}${o.shippingAddress.street}, ${o.shippingAddress.city}, ${o.shippingAddress.state || ""} ${o.shippingAddress.postalCode ? "– " + o.shippingAddress.postalCode : ""}`
               : "Saved Customer Address",
@@ -320,7 +325,7 @@ export default function OrdersPage() {
                   {/* Order Top Bar */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-border/60 dark:border-white/[0.06]">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono font-bold text-sm text-foreground">
                           #{order.orderNumber}
                         </span>
@@ -331,9 +336,29 @@ export default function OrdersPage() {
                         >
                           {order.status}
                         </span>
+                        {order.paymentStatus === "AWAITING_VERIFICATION" && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                            UPI Verification Pending {order.utr ? `(UTR: ${order.utr})` : ""}
+                          </span>
+                        )}
+                        {order.paymentStatus === "PAID" && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            Payment Verified
+                          </span>
+                        )}
+                        {order.paymentStatus === "REJECTED" && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" title={order.rejectionReason}>
+                            Payment Rejected: {order.rejectionReason || "Invalid UTR"}
+                          </span>
+                        )}
+                        {order.paymentMethod === "COD" && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                            Cash on Delivery
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-muted-foreground">
-                        Ordered on {order.createdAt} • Paid via {order.paymentMethod}
+                        Ordered on {order.createdAt} • Mode: <strong className="text-foreground font-semibold uppercase">{order.paymentMethod}</strong>
                       </p>
                     </div>
 
