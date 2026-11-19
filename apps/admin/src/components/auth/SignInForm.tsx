@@ -42,15 +42,16 @@ export default function SignInForm() {
   const handleBackendAuth = async (idToken: string) => {
     try {
       const response = await api.post('/auth/admin/firebase-login', { idToken });
-      const { accessToken, user } = response.data;
-      Cookies.set('admin_access_token', accessToken, { expires: 7 });
+      const { accessToken, access_token, user } = response.data;
+      const token = accessToken || access_token;
+      Cookies.set('admin_access_token', token, { expires: 7 });
       Cookies.set('admin_user', JSON.stringify(user), { expires: 7 });
       router.push("/");
     } catch (err: any) {
       if (err.response?.status === 429) {
         setError("Too many login attempts. Please wait a minute and try again.");
       } else if (err.response?.status === 401 || err.response?.status === 403) {
-        setError("Access denied. You do not have administrative privileges.");
+        setError(err.response?.data?.message || "Access denied. You do not have administrative privileges.");
       } else {
         setError(err.response?.data?.message || "Failed to authenticate with backend.");
       }
@@ -93,8 +94,28 @@ export default function SignInForm() {
     
     if (cleanNumber === '9999999999' && data.otp === '123456') {
       setLoading(true);
-      await handleBackendAuth('test-admin-token-9999999999');
-      setLoading(false);
+      setError(null);
+      try {
+        const response = await api.post('/auth/admin/firebase-login', { idToken: 'test-admin-token-9999999999' });
+        const { accessToken, access_token, user } = response.data;
+        const token = accessToken || access_token;
+        Cookies.set('admin_access_token', token, { expires: 7 });
+        Cookies.set('admin_user', JSON.stringify(user), { expires: 7 });
+        router.push("/");
+      } catch (err: any) {
+        try {
+          const directResponse = await api.post('/auth/admin/login', { phone: cleanNumber, otp: data.otp });
+          const { accessToken, access_token, user } = directResponse.data;
+          const token = accessToken || access_token;
+          Cookies.set('admin_access_token', token, { expires: 7 });
+          Cookies.set('admin_user', JSON.stringify(user), { expires: 7 });
+          router.push("/");
+        } catch (fallbackErr: any) {
+          setError(err.response?.data?.message || fallbackErr.response?.data?.message || "Failed to authenticate admin.");
+        }
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
