@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 
 @Injectable()
@@ -10,14 +15,23 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     // Touch database every 9 minutes to keep connection pool warm and prevent Supabase 7-day inactivity pause
-    this.keepAliveTimer = setInterval(async () => {
-      try {
-        await this.prisma.$queryRaw`SELECT 1`;
-        this.logger.debug('Database connection touched successfully (internal keep-alive)');
-      } catch (err: any) {
-        this.logger.warn(`Keep-alive DB touch encountered an issue: ${err?.message || err}`);
-      }
-    }, 9 * 60 * 1000);
+    this.keepAliveTimer = setInterval(
+      () => {
+        void (async () => {
+          try {
+            await this.prisma.$queryRaw`SELECT 1`;
+            this.logger.debug(
+              'Database connection touched successfully (internal keep-alive)',
+            );
+          } catch (err: any) {
+            this.logger.warn(
+              `Keep-alive DB touch encountered an issue: ${err?.message || err}`,
+            );
+          }
+        })();
+      },
+      9 * 60 * 1000,
+    );
   }
 
   onModuleDestroy() {
