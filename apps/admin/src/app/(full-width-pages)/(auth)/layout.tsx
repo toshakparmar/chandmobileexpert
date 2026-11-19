@@ -53,6 +53,7 @@ export default function AuthLayout({
                   alt="Chand Mobile Expert Logo"
                   fill
                   priority
+                  unoptimized
                   className="object-contain dark:hidden drop-shadow-sm"
                 />
                 <Image
@@ -60,6 +61,7 @@ export default function AuthLayout({
                   alt="Chand Mobile Expert Logo"
                   fill
                   priority
+                  unoptimized
                   className="object-contain hidden dark:block drop-shadow-md"
                 />
               </div>

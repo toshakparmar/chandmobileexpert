@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  images: {
+    unoptimized: true,
+  },
   transpilePackages: ["@chand/ui", "@chand/types", "@chand/api-client"],
   webpack(config) {
     config.module.rules.push({
